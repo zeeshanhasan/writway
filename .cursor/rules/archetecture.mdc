@@ -1,0 +1,53 @@
+---
+description: This is Archecture document giving an overview of the system, should be updated automatically if major changes happen with its scope. Get confirmation before updating this document. 
+alwaysApply: true
+---
+
+# Architecture Guidelines
+
+## System Overview
+This project is a **multi-tenant SaaS platform** for paralegals and small legal practices.  
+It automates documentation workflows, client communication, and case management, while providing CRM, tasks, pipeline, billing, and analytics.
+
+## Tech Stack
+- **Backend**: Node.js (API-first, modular service design)
+- **Frontend**: Next.js (App Router, dashboard UI)
+- **Database**: PostgreSQL + Prisma ORM
+- **Auth**: Google Workspace OAuth2
+- **Billing**: Stripe API
+- **File Handling**: PDF generation + storage (S3 or equivalent)
+- **Email Service**: Google API (correspondence + workflows)
+
+## Folder Structure
+- `/backend` → Node.js services & REST API layer  
+- `/frontend` → Next.js app (dashboards, client portal)  
+- `/database` → Prisma schema, migrations, seeds  
+- `/infra` → Infrastructure-as-Code, CI/CD, environment configs  
+- `/docs` → `.cursor/rules/*.mdc` files (guidelines & conventions)  
+
+## Security Layer
+- **Multi-tenancy**: row-level isolation per tenant  
+- **Role-based access control**:  
+  - Super Admin → global view across tenants  
+  - Org Admin → manage org, billing, settings, team  
+  - Staff/User → limited per role  
+- **Data Protection**:  
+  - HTTPS enforced, secure cookies, TLS in transit  
+  - Encryption at rest (DB + S3)  
+  - Principle of Least Privilege for all services  
+
+## Integration Points
+- Backend ↔ Database (Prisma ORM)  
+- Backend ↔ Email (Google API sync)  
+- Backend ↔ Billing (Stripe API + webhooks)  
+- Backend ↔ File Storage (PDFs in S3/equivalent)  
+- Frontend ↔ Backend (REST APIs + JWT session tokens)  
+
+## Linked Rule Documents
+- **Backend rules** → `backend.mdc`  
+- **Database schema & naming** → `database.mdc`  
+- **Frontend structure** → `frontend.mdc`  
+- **UI design system** → `ui.mdc`  
+- **DevOps & Environments** → `devops.mdc`  
+
+---

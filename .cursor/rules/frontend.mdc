@@ -1,0 +1,170 @@
+---
+alwaysApply: true
+---
+# Frontend Guidelines (Next.js)
+
+Binding rules for the WritWay frontend. Optimized for App Router, strong routing/access control, SEO/LLM friendliness, and clean API consumption. Styling & components are defined in `ui.mdc`.
+
+---
+
+## 0) Scope & Goals
+
+* **Scope**: Next.js App Router app that serves public marketing pages and an authenticated multi‑tenant dashboard.
+* **Goals**: Predictable routing, protected areas by role, SEO/LLM‑friendly public pages, reusable data hooks, timezone‑correct UI, and zero ad‑hoc fetches.
+
+---
+
+## 1) Project Structure
+
+```
+/frontend
+  /app
+    /(public)        # SEO/LLM‑friendly pages (SSR/ISR)
+      layout.tsx     # header + footer + <main/>
+      page.tsx       # home
+      about/page.tsx
+      features/page.tsx
+      pricing/page.tsx
+      terms/page.tsx
+      privacy/page.tsx
+    /auth            # auth routes
+      layout.tsx
+      login/page.tsx
+      register/page.tsx
+      callback/route.ts # OAuth callback
+    /(dashboard)     # protected app UI
+      layout.tsx     # sidebar shell, topbar, <main/>
+      page.tsx       # overview
+      clients/page.tsx
+      clients/[id]/page.tsx
+      cases/page.tsx
+      workflows/page.tsx
+      tasks/page.tsx
+      settings/page.tsx
+      billing/page.tsx
+    error.tsx        # global error boundary
+    not-found.tsx
+  /components        # shared components (non-UI primitives go here; UI primitives in `ui.mdc`)
+  /features          # feature folders: hooks + containers per domain (clients, cases, ...)
+  /lib               # api client, query client, date utils, auth helpers
+  /providers         # app-level providers (QueryClientProvider, Theme, etc.)
+  /types             # shared TS types (generated from OpenAPI preferred)
+  /tests             # component + e2e configs
+```
+
+---
+
+## 2) Routing & Access Control
+
+* Use **App Router** with **route groups** `(public)` and `(dashboard)`.
+* Public routes: only under `(public)`; never require auth; served via SSR/ISR.
+* Protected routes: under `(dashboard)`; require session + role. Enforced by:
+
+  * **`middleware.ts`** at project root:
+
+    * Redirect unauthenticated requests to `/auth/login`.
+    * Enforce role‑based access (SUPER_ADMIN, ORG_ADMIN, STAFF) using a server‑side session check.
+  * **Server Components**: read session via server helpers; deny early (no client‑only guards).
+* Auth routes (`/auth/*`) are public but hidden for logged‑in users (redirect to dashboard if session exists).
+
+---
+
+## 3) Layouts & Shells
+
+* **Public layout**: `/(public)/layout.tsx` must include `<header>`, `<main>`, `<footer>`.
+* **Dashboard layout**: `/(dashboard)/layout.tsx` must provide a responsive sidebar, topbar (breadcrumbs, search, user menu), and a `<main>` area. Sidebar is a component fed by a **single nav config** (no per‑page hardcoding).
+* Loading states: use **route‑level `loading.tsx`** and **skeleton loaders** (see `ui.mdc` for components).
+
+---
+
+## 4) SEO & LLM Friendliness (Public Pages)
+
+* Use Next.js **Metadata API** for title/description/Open Graph/Twitter.
+* Include **JSON‑LD** via `<Script type="application/ld+json">` for `Organization`, `Product`, `FAQPage` where relevant.
+* Generate **sitemap.xml** and **robots.txt**.
+* Prefer **SSR** or **ISR** for public pages; avoid CSR‑only content.
+* Content must be semantic: `<h1>` for page title, consistent headings, landmarks (`<header>`, `<nav>`, `<main>`, `<footer>`).
+* Clean URLs and canonical tags.
+
+---
+
+## 5) Data Access & API Consumption
+
+* **Single source**: consume the backend via a **typed SDK generated from OpenAPI** (e.g., `openapi-typescript` + thin client, or `orval`).
+* **No raw `fetch`** in components; use `/lib/api` wrapper + hooks.
+* **React Query (TanStack Query)** for data fetching, caching, retries, and mutations.
+
+  * Default stale time suitable for resource type; avoid chatty refetches.
+  * Global error handler maps API envelope errors → UI toasts/messages.
+* **Hooks pattern**: colocate hooks with features, e.g., `/features/clients/useClients.ts`.
+* **Server actions** permitted for simple mutation flows, but still call the SDK for consistency.
+
+---
+
+## 6) State, Forms, and Validation
+
+* Prefer **React Query** + component state; avoid global state unless necessary.
+* Forms use **React Hook Form** with **Zod resolver**; schemas share types with backend (generated or hand‑shared in `/types`).
+* Display field‑level errors from API using the standard envelope.
+
+---
+
+## 7) Time & Localization
+
+* Backend stores **UTC**; frontend converts using user/tenant **timezone** setting.
+* Use `date-fns-tz` or `luxon` in `/lib/dates.ts` with helpers: `formatForUser`, `toUTC`, `fromUTC`.
+* Always show absolute times with short relative cues (e.g., "Today 14:30 (in 2h)").
+
+---
+
+## 8) Performance & Accessibility
+
+* Images via `next/image` with proper `alt`.
+* Code‑split non‑critical dashboard panels; lazy load charts/editors.
+* Cache public pages with **ISR**; revalidate on schedule or webhooks.
+* Follow **WCAG 2.1 AA**: keyboard nav, focus styles, ARIA as needed.
+
+---
+
+## 9) Error Handling & Empty States
+
+* Route‑level `error.tsx` for dashboard groups.
+* Empty states provide clear CTA (e.g., "Add first client").
+* Network/permission errors should map to consistent UI patterns.
+
+---
+
+## 10) Testing & Quality
+
+* **Unit/Component**: React Testing Library + Vitest/Jest.
+* **E2E**: Playwright for critical flows (login, create client, run workflow).
+* **Lighthouse** CI on public pages; set thresholds for SEO/Perf/Accessibility.
+
+---
+
+## 11) Analytics & Telemetry
+
+* Respect privacy (no PII in analytics). Consent gating for cookies.
+* Track core events: signups, logins, key dashboard interactions.
+* Feature flags may be used via a provider but must default safely.
+
+---
+
+## 12) Definition of Done (Frontend Story)
+
+1. Pages/routes wired under correct group with guards.
+2. Data access via typed SDK + React Query hooks.
+3. Loading & error states implemented (skeletons, toasts).
+4. SEO metadata + JSON‑LD added for public pages.
+5. Timezone formatting verified.
+6. Tests written (component/e2e if applicable) and pass.
+7. Lighthouse checks pass on public pages (SEO ≥ 90, A11y ≥ 90).
+
+---
+
+## 13) Linked Rule Documents
+
+* **UI components & styling** → `ui.mdc`
+* **Backend API rules** → `backend.mdc`
+* **Architecture overview** → `architecture.mdc`
+* **DevOps & Environments** → `devops.mdc`

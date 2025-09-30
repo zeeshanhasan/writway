@@ -1,0 +1,274 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+# Backend Guidelines
+
+> Authoritative rules for the Node.js API layer used by WritWay. These rules are binding for Cursor-generated code and human contributions.
+
+---
+
+## 0) Scope & Goals
+
+* **Scope**: Backend service(s) written in Node.js exposing a standardized REST API consumed by our Next.js frontend and (later) external partners.
+* **Goals**: Predictable APIs, zero duplication, strong security, testability, observability, and safe integrations.
+
+---
+
+## 1) Tech & Runtime
+
+* **Runtime**: Node.js (latest LTS)
+* **Framework**: Express
+* **ORM**: Prisma (PostgreSQL)
+* **Validation**: Zod
+* **Docs**: OpenAPI 3.0+ (Swagger UI served at `/api/docs` in non‑prod)
+* **Testing**: Jest + Supertest (integration)
+* **Queues / Jobs**: BullMQ (Redis) for async + scheduled work
+* **Env**: 12‑factor config via `.env` and process.env
+
+---
+
+## 2) Folder Structure & Layering
+
+```
+/backend
+  /src
+    /api            # HTTP layer: routers/controllers only
+    /services       # business logic (no HTTP or DB primitives)
+    /repositories   # Prisma data mappers, one per aggregate
+    /integrations   # 3P clients (OpenAI, Google, Stripe, S3, …)
+    /webhooks       # inbound/outbound webhook handlers
+    /jobs           # BullMQ processors, schedulers
+    /middlewares    # auth, rbac, validation, rate-limit, logging
+    /schemas        # zod schemas (request/response contracts)
+    /utils          # shared helpers (id, dates, errors, etc.)
+  /tests            # unit + integration + contract tests
+  /config           # env schema, config loaders
+```
+
+**Strict boundaries**
+
+* Controllers: parse/validate → call service → map result → respond.
+* Services: business logic → call repositories/integrations.
+* Repositories: *only* Prisma access. No business rules.
+* No controller may call a repository directly.
+
+---
+
+## 3) API Design Conventions
+
+* **Base path & version**: `/api/v1` (future versions: `/api/v2`, etc.)
+* **Resources**: plural nouns (`/clients`, `/cases`, `/workflows`).
+* **IDs**: path param for single resource (`/clients/{id}`).
+* **Filtering**: query params; support `page`, `limit`, `sort`, `order`, and domain filters (`status`, `from`, `to`, etc.).
+* **Idempotency**: `PUT` for updates (full/partial with PATCH allowed), `POST` creates, `DELETE` deletes. For mutation endpoints that may be retried by clients, accept header `Idempotency-Key` and de‑duplicate server‑side.
+* **No duplicate APIs**: prefer capability via query params, not new near-duplicate routes. New routes must be reviewed against existing ones.
+
+### 3.1 Standard Response Envelope
+
+```json
+{
+  "success": true,
+  "data": {},
+  "error": null,
+  "meta": { "page": 1, "limit": 20, "total": 100 }
+}
+```
+
+**Errors**
+
+```json
+{
+  "success": false,
+  "error": { "code": "VALIDATION_ERROR", "message": "Email is required", "details": {"field": "email"} }
+}
+```
+
+* **Error codes registry** lives in `/src/utils/errors.ts` and must be reused.
+
+### 3.2 Pagination & Sorting
+
+* Default `limit=20`, max `limit=100` unless documented otherwise.
+* Return `meta.total`, `meta.page`, `meta.limit`.
+* Cursor pagination is permitted for heavy lists (document clearly).
+
+### 3.3 OpenAPI Contract
+
+* Every route **must** be described in OpenAPI (request schema, response schema, examples, error cases).
+* CI validates code ↔ spec parity; contract tests fail the build on drift.
+
+---
+
+## 4) Authentication & Authorization
+
+* **Auth**: Google OAuth2 login handled by frontend → backend issues short‑lived JWT + refresh token pair.
+* **RBAC**: Middleware enforces tenant‑scoped roles:
+
+  * `SUPER_ADMIN` (platform‑wide)
+  * `ORG_ADMIN` (tenant admin)
+  * `STAFF` / `USER` (scoped permissions)
+* **Tenant isolation**: all DB queries must be scoped by `tenant_id` via Prisma middleware.
+* **Session storage**: stateless JWT; refresh token rotation required; revoke on logout/device removal.
+
+---
+
+## 5) Validation & Security
+
+* **Edge validation**: all inputs validated via Zod/Joi in controllers.
+* **Sanitization**: escape/strip dangerous content; never trust user HTML.
+* **Headers**: Helmet, CORS allowlist per environment.
+* **Rate limiting**: global + per‑route via middleware; stricter for mutation routes.
+* **Secrets**: loaded from env; never logged; rotate regularly.
+* **PII/Legal**: minimize logging of PII, support data redaction, implement data retention windows.
+* **Audit log**: record critical actions (who/what/when/tenant) for compliance.
+
+---
+
+## 6) Errors, Logging, Observability
+
+* **Central error handler** maps known errors → standard envelope; hides stack traces in production.
+* **Structured logs (JSON)**: include `requestId`, `tenantId`, `userId`, `route`, and `durationMs`.
+* **Correlation**: propagate `X-Request-Id`; generate if missing.
+* **Health endpoints**: `/health` (process, uptime), `/ready` (deps: DB, Redis, external touch if needed).
+* **Metrics**: request rate, latency p95/p99, error rate, queue depths, external API timings; export Prometheus where applicable.
+
+---
+
+## 7) Database Access (summary; see `database.mdc` for full rules)
+
+* **Prisma only** in repositories; no raw SQL unless justified and reviewed.
+* **UUID** primary keys, `snake_case` columns, plural table names.
+* **Multi‑tenancy**: mandatory `tenant_id` on isolated tables. Prisma middleware auto‑injects where clause.
+* **Transactions**: wrap related writes in `prisma.$transaction`.
+* **Migrations**: exclusively via `prisma migrate` in CI/CD; no manual prod changes.
+
+---
+
+## 8) Testing Strategy
+
+* **Unit**: services, utils. Target ≥80% critical path coverage.
+* **Integration**: API routes with Supertest against an ephemeral DB.
+* **Contract**: schemas validated against OpenAPI; generate client SDK and verify types.
+* **Mocks**: external APIs (Google, Stripe, OpenAI, S3) must be mocked; record/replay allowed in CI.
+
+---
+
+## 9) Third‑Party Integrations (Design Rules)
+
+* All integrations implemented under `/src/integrations/{provider}` with a **common client interface**:
+
+  * **Timeouts**: hard timeouts per call (e.g., 10s default; override per provider)
+  * **Retries**: exponential backoff on retryable errors (network, 429/5xx)
+  * **Circuit breaker**: open after N consecutive failures; short‑circuit for cool‑down
+  * **Idempotency**: use provider idempotency keys where supported
+  * **Request/Response logging**: log metadata only (no secrets / sensitive payloads)
+  * **Cost/usage metering**: emit metrics (tokens used, calls, cost estimates)
+* **Providers in scope (initial)**: Google (Gmail), Stripe, S3/equivalent, OpenAI (future), others via the same pattern.
+* **Key management**: credentials via env/secrets manager; scoped with least privilege; never exposed to clients.
+
+---
+
+## 10) Webhooks (Inbound & Outbound)
+
+### 10.1 Inbound Webhooks (e.g., Stripe, Google)
+
+Pipeline:
+
+1. **Ingress** endpoint verifies **signature** (HMAC/shared secret) and **content‑type**.
+2. Compute a **dedupe key** (event id + provider) → check/store in idempotency table.
+3. **Enqueue** processing job (BullMQ) with payload; return 2xx quickly.
+4. Job processor performs business logic inside a transaction.
+5. Handle **retries** safely; jobs must be idempotent.
+6. Expose a **replay** admin function for recovery.
+
+### 10.2 Outbound Webhooks (notify tenant systems)
+
+* **Subscription model**: tenants can register endpoints + event types.
+* **Signing**: sign payloads with tenant‑specific secret (HMAC SHA‑256). Include `X-Writway-Signature` and timestamp.
+* **Delivery**: queue + retry with backoff; mark permanently failed after N attempts; dashboard for status.
+* **Schema**: versioned payloads; include `eventId`, `eventType`, `occurredAt`, `data`.
+
+---
+
+## 11) Public API for Partners (Future‑Ready)
+
+* **Auth**: API keys or OAuth2 Client Credentials per partner app.
+* **Scopes**: fine‑grained, tenant‑scoped permissions.
+* **Rate limits**: per key; communicate via `X‑RateLimit-*` headers.
+* **Versioning**: `/api/v1` with deprecation policy (see §12).
+* **Docs & SDKs**: publish OpenAPI; generate TS/JS SDK; provide Postman collection.
+
+---
+
+## 12) Versioning & Deprecation Policy
+
+* **Semantic versioning** of API surface via URL (`/api/v{n}`).
+* **Breaking changes** → new version; never silently break v1.
+* **Deprecation**: provide `Sunset` header + changelog + migration guide; maintain old version for a defined window (e.g., 6–12 months) before removal.
+
+---
+
+## 13) Performance & Caching
+
+* **N+1 avoidance**: use Prisma includes/selects; batch where sensible.
+* **Caching**: Redis for hot reads; cache keys include `tenant_id`.
+* **ETag/Last‑Modified** for GETs where feasible; support conditional requests.
+* **Bulk endpoints** for high‑latency patterns to reduce chatty clients.
+
+---
+
+## 14) Cost Controls (AI & External APIs)
+
+* Per‑tenant quotas and budgets for costly providers (e.g., OpenAI).
+* Soft/hard limits with graceful degradation (queue, throttle, or return 429 with `Retry‑After`).
+* Emit cost metrics; nightly rollups per tenant and per feature.
+
+---
+
+## 15) Developer Experience
+
+* **Local**: seed scripts, docker‑compose for DB/Redis, `.env.example` kept up‑to‑date.
+* **Docs**: `/api/docs` (Swagger UI) in non‑prod; publish OpenAPI JSON in all envs.
+* **API Explorer**: optional lightweight explorer for authenticated users in staging.
+* **Postman**: maintained collection synced with OpenAPI.
+
+---
+
+## 16) Definition of Done (for any API story)
+
+1. Routes implemented with validation and RBAC.
+2. Service + repository logic tested (unit) and route tested (integration).
+3. OpenAPI updated; examples included.
+4. Error codes reused; responses conform to envelope.
+5. Rate limiting configured (default or custom).
+6. Logs/metrics added for critical paths.
+7. Migration (if any) added and tested.
+8. Changelog entry + brief developer notes.
+
+---
+
+## 17) Linked Rule Documents
+
+* **Architecture overview** → `architecture.mdc`
+* **Database schema & migrations** → `database.mdc`
+* **Frontend consumption** → `frontend.mdc`
+* **UI components** → `ui.mdc`
+* **DevOps/Environments** → `devops.mdc`
+
+---
+
+## 18) Anti‑Patterns to Avoid
+
+* Controllers doing business logic or DB access.
+* Inconsistent response shapes or error codes.
+* Unversioned routes or silent breaking changes.
+* Fire‑and‑forget webhook handling without dedupe/retry.
+* Leaking PII in logs; logging secrets.
+* Skipping tests or OpenAPI updates.
+* Creating near‑duplicate endpoints instead of adding filters/params.
+
+---
+
+> **Reminder**: Treat the API as a product. Predictability > cleverness. Backwards compatibility is a feature.

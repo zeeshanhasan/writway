@@ -1,0 +1,151 @@
+# Feature: Bootstrap Project
+
+## Goal
+
+Initialize the WritWay project monorepo with backend, frontend, and database boilerplate according to the rules defined in `.cursor/rules`.
+
+---
+
+## Deliverables
+
+* Monorepo structure:
+
+  ```
+  /backend   → Node.js + Express + Prisma API
+  /frontend  → Next.js (App Router) + shadcn/ui + Tailwind
+  /database  → Prisma schema + migrations + seeds
+  ```
+* Shared configs: `.gitignore`, `.editorconfig`, `tsconfig.base.json`, root `package.json` with workspaces.
+
+---
+
+## Backend
+
+* Initialize Node.js project with TypeScript.
+* Install deps:
+
+  * `express`, `cors`, `dotenv`, `zod`
+  * `prisma`, `@prisma/client`
+  * Dev: `ts-node`, `nodemon`, `typescript`
+* `src/index.ts`:
+
+  ```ts
+  import express from 'express';
+  import cors from 'cors';
+  import { PrismaClient } from '@prisma/client';
+
+  const app = express();
+  const prisma = new PrismaClient();
+
+  app.use(cors());
+  app.use(express.json());
+
+  app.get('/health', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ status: 'ok', db: 'connected' });
+    } catch (err) {
+      res.json({ status: 'ok', db: 'disconnected' });
+    }
+  });
+
+  app.listen(4000, () => {
+    console.log('Backend running on http://localhost:4000');
+  });
+  ```
+* Prisma setup:
+
+  * `schema.prisma` configured for PostgreSQL.
+  * Use `DATABASE_URL` in `.env` (format: `postgresql://user:pass@localhost:5432/writway`).
+* Scripts:
+
+  * `dev` → run nodemon
+  * `migrate` → run prisma migrate
+  * `studio` → open prisma studio
+
+---
+
+## Database
+
+* Initialize Prisma schema.
+* Run initial migration: `npx prisma migrate dev --name init`.
+* Seed script (`prisma/seed.ts`):
+
+  * Roles (SUPER_ADMIN, ORG_ADMIN, STAFF).
+  * Super Admin account.
+  * Countries + cities from ISO data.
+
+---
+
+## Frontend
+
+* Initialize Next.js App Router project with TypeScript.
+* Install deps:
+
+  * `@tanstack/react-query`
+  * `lucide-react`
+  * `recharts`
+  * `@hookform/resolvers`, `react-hook-form`, `zod`
+* Install shadcn/ui:
+
+  * `npx shadcn-ui init`
+  * Add components: `button`, `input`, `form`, `dialog`, `toast`, `table`
+* Routing:
+
+  * `/(public)` → home page with header/footer layout.
+  * `/(dashboard)` → placeholder dashboard with sidebar layout.
+* Public home page stub:
+
+  ```tsx
+  export default function HomePage() {
+    return (
+      <main>
+        <h1>Welcome to WritWay</h1>
+        <p>Public landing page placeholder</p>
+      </main>
+    );
+  }
+  ```
+* Middleware stub for auth in `middleware.ts`.
+
+---
+
+## Dev Experience
+
+* Root `package.json` with workspaces (`backend`, `frontend`, `database`).
+* Shared `.gitignore`, `.editorconfig`, `tsconfig.base.json`.
+* Docker Compose:
+
+  ```yaml
+  version: '3.9'
+  services:
+    postgres:
+      image: postgres:15
+      ports:
+        - '5432:5432'
+      environment:
+        POSTGRES_USER: writway
+        POSTGRES_PASSWORD: writway
+        POSTGRES_DB: writway
+    backend:
+      build: ./backend
+      ports:
+        - '4000:4000'
+      depends_on:
+        - postgres
+    frontend:
+      build: ./frontend
+      ports:
+        - '3000:3000'
+      depends_on:
+        - backend
+  ```
+* Root command: `npm run dev` → runs backend + frontend concurrently.
+
+---
+
+## Success Criteria
+
+* Run `docker-compose up` → Postgres, backend, and frontend start.
+* Visit `http://localhost:4000/health` → returns `{ status: 'ok', db: 'connected' }` if DB is up.
+* Visit `http://localhost:3000` → Next.js home page loads.
