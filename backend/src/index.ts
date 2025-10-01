@@ -5,7 +5,10 @@ import { PrismaClient } from '@prisma/client';
 const app = express();
 const prisma = new PrismaClient();
 
-app.use(cors());
+app.use(cors({
+  origin: ["https://writway.com", "http://localhost:3000"],
+  credentials: true,
+}));
 app.use(express.json());
 
 app.get('/health', async (_req, res) => {
