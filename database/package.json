@@ -9,7 +9,10 @@
     "migrate:reset": "prisma migrate reset",
     "studio": "prisma studio",
     "seed": "ts-node prisma/seed.ts",
-    "generate": "prisma generate"
+    "generate": "prisma generate",
+    "build": "tsc",
+    "start": "node -e 'console.log(\"Database workspace contains schema and scripts only\")'",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
