@@ -2,20 +2,23 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# 1) Copy monorepo root manifests (requires build context = repo root)
+COPY package.json package-lock.json ./
+COPY backend/package.json ./backend/package.json
+COPY database/package.json ./database/package.json
 
-# Install dependencies
+# 2) Install dependencies for all workspaces
 RUN npm ci
 
-# Copy source code
+# 3) Copy full source (backend + database for Prisma schema)
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
+# 4) Generate Prisma Client using database schema
+RUN npx prisma generate --schema ./database/prisma/schema.prisma
 
-# Expose port
+# 5) Build backend
+RUN npm run --workspace backend build
+
+# 6) Expose and start
 EXPOSE 4000
-
-# Start the application
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "--workspace", "backend", "start"]
