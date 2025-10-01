@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 export function MarketingHeader() {
   return (
@@ -26,9 +26,12 @@ export function MarketingHeader() {
             <Link href="/auth/login" className="text-sm text-foreground/80 hover:text-foreground">
               Sign in
             </Link>
-            <Button asChild className="bg-black text-white hover:bg-black/90">
-              <Link href="/auth/register">Sign Up</Link>
-            </Button>
+            <Link
+              href="/auth/register"
+              className={buttonVariants({ variant: "default", className: "bg-black text-white hover:bg-black/90" })}
+            >
+              Sign Up
+            </Link>
           </div>
         </div>
       </div>
