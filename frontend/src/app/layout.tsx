@@ -17,23 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-screen flex flex-col">
-          <header className="border-b">
-            <div className="container mx-auto px-4 py-4">
-              <h1 className="text-2xl font-bold">WritWay</h1>
-            </div>
-          </header>
-          <main className="flex-1 container mx-auto px-4 py-8">
-            {children}
-          </main>
-          <footer className="border-t">
-            <div className="container mx-auto px-4 py-4">
-              <p className="text-center text-muted-foreground">
-                © 2024 WritWay. All rights reserved.
-              </p>
-            </div>
-          </footer>
-        </div>
+        <div className="min-h-screen flex flex-col">{children}</div>
       </body>
     </html>
   );

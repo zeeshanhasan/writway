@@ -22,8 +22,8 @@ Binding rules for the WritWay frontend. Optimized for App Router, strong routing
     /(public)        # SEO/LLM‑friendly pages (SSR/ISR)
       layout.tsx     # header + footer + <main/>
       page.tsx       # home
-      about/page.tsx
-      features/page.tsx
+      resources/page.tsx
+      solution/page.tsx
       pricing/page.tsx
       terms/page.tsx
       privacy/page.tsx
