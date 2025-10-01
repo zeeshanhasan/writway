@@ -18,6 +18,7 @@ app.get('/health', async (_req, res) => {
 });
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
-app.listen(port, () => {
-  console.log(`Backend running on http://localhost:${port}`);
+const host = '0.0.0.0';
+app.listen(port, host, () => {
+  console.log(`Backend running on http://${host}:${port}`);
 });
