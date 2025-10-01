@@ -30,6 +30,12 @@
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
+  "overrides": {
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "@types/react": "^19.1.4",
+    "@types/react-dom": "^19.1.4"
+  },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
