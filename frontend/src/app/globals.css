@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* Layout */
+  --radius: 12px;
+  /* Light theme per theme.mdc */
+  --background: #F5F1EB;            /* Warm Beige */
+  --foreground: #111827;            /* Neutral Dark */
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+  --primary: #1A1A1A;               /* Charcoal */
+  --primary-foreground: #FFFFFF;
+  --secondary: #2563EB;             /* Muted Blue */
+  --secondary-foreground: #FFFFFF;
+  --muted: #F9FAFB;                 /* Neutral Light */
+  --muted-foreground: #6B7280;      /* Neutral Mid */
+  --accent: #FF6B35;                /* Brand Accent */
+  --accent-foreground: #FFFFFF;
+  --destructive: #DC2626;           /* Error */
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #FF6B35;                  /* Focus ring uses Accent */
+  /* Charts (approximate brand-coherent palette) */
+  --chart-1: #FF6B35;
+  --chart-2: #2563EB;
+  --chart-3: #22C55E;
+  --chart-4: #6B7280;
+  --chart-5: #1A1A1A;
+  /* Sidebar (light) */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #1A1A1A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F9FAFB;
+  --sidebar-accent-foreground: #111827;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #FF6B35;
+}
+
+.dark {
+  /* Dark theme per theme.mdc */
+  --background: #0C0C0D;
+  --foreground: #F5F1EB;
+  --card: #1A1A1A;
+  --card-foreground: #F5F1EB;
+  --popover: #1A1A1A;
+  --popover-foreground: #F5F1EB;
+  --primary: #F5F1EB;
+  --primary-foreground: #0C0C0D;
+  --secondary: #2563EB;
+  --secondary-foreground: #F5F1EB;
+  --muted: #1F2937;
+  --muted-foreground: #9CA3AF;
+  --accent: #FF6B35;
+  --accent-foreground: #FFFFFF;
+  --destructive: #DC2626;
+  --border: #1F2937;
+  --input: #1F2937;
+  --ring: #FF6B35;
+  --chart-1: #FF6B35;
+  --chart-2: #2563EB;
+  --chart-3: #22C55E;
+  --chart-4: #9CA3AF;
+  --chart-5: #F5F1EB;
+  --sidebar: #1A1A1A;
+  --sidebar-foreground: #F5F1EB;
+  --sidebar-primary: #F5F1EB;
+  --sidebar-primary-foreground: #0C0C0D;
+  --sidebar-accent: #0C0C0D;
+  --sidebar-accent-foreground: #F5F1EB;
+  --sidebar-border: #1F2937;
+  --sidebar-ring: #FF6B35;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  /* Marketing container utility per theme.mdc (1280px max, 16px gutters) */
+  .container {
+    max-width: 1280px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

@@ -1,0 +1,100 @@
+---
+alwaysApply: true
+---
+# UI Guidelines (shadcn/ui + Tailwind)
+
+Rules for WritWay’s UI layer. Ensures consistent, brand-driven design using shadcn/ui components, Tailwind theme tokens, Lucide icons, and Recharts for data visualization.
+
+---
+
+## 0) Scope & Goals
+
+* **Scope**: All frontend UI components styled via shadcn/ui and Tailwind.
+* **Goals**: Brand consistency, no ad‑hoc CSS, accessibility, reusability, and easy global theming.
+
+---
+
+## 1) Theming & Tokens
+
+* **Single source of truth**: All design tokens live in `tailwind.config.js` and shadcn theme files.
+* **Colors**: Brand palette defined once in Tailwind theme. Use semantic names (`primary`, `secondary`, `accent`, `muted`, `success`, `error`, etc.). Never hardcode hex in components.
+* **Typography**: Font families, weights, and sizes defined in theme. Heading/body scale consistent across app.
+* **Radii, shadows, spacing**: All via theme tokens. No arbitrary pixel values inline.
+* **Dark mode**: Allowed by shadcn, but only light theme will be used initially. Keep tokens extensible for future dark theme.
+
+---
+
+## 2) Component Usage Rules
+
+* **Source**: Use shadcn/ui primitives (Button, Input, Form, Dialog, Dropdown, Toast, Skeleton, Table, etc.).
+* **Buttons**: Always via `Button` component with `variant` props (primary, secondary, ghost, destructive). No custom one‑off buttons.
+* **Forms**: Use `Form` + `React Hook Form` + Zod resolver. Shared error display + helper text. Input fields extend shadcn inputs with theme styles.
+* **Tables**: Use shadcn `DataTable` (paginated, sortable, filterable). No custom table markup.
+* **Modals & Drawers**: Always via shadcn `Dialog` or `Sheet`. Consistent padding, headers, and close actions.
+* **Toasts**: Use shadcn `Toast` for global feedback. No ad‑hoc alert boxes.
+* **Skeleton loaders**: shadcn `Skeleton` component. Must be used for all async data loads.
+* **Navigation**: Sidebar, topbar, breadcrumbs built from shadcn primitives + theme tokens. Config-driven, no per-page hardcoding.
+* **Empty states**: Reusable pattern with icon (Lucide), title, description, and CTA button.
+
+---
+
+## 3) Icons & Graphs
+
+* **Icons**: Use `lucide-react`. Always line style; no other packs. Icons imported on demand for tree-shaking.
+* **Charts**: Use `Recharts` for all dashboard analytics (bar, line, pie, area). Keep consistent theme colors. No mixing chart libraries.
+
+---
+
+## 4) Custom CSS Policy
+
+* **No inline styles** (except rare dynamic cases like background images).
+* **No random Tailwind overrides** in components. Only theme tokens allowed.
+* **If custom CSS required**:
+
+  * Must live in a dedicated CSS/SCSS file under `/frontend/styles/`.
+  * Must be generic, reusable, and documented.
+  * Prefer extending Tailwind config instead.
+* **Never** patch styles inside individual component files.
+
+---
+
+## 5) Accessibility & Responsiveness
+
+* All components must meet **WCAG 2.1 AA**.
+* Keyboard navigation required (focus traps, visible focus rings).
+* Contrast ratios validated against theme tokens.
+* Responsive breakpoints: mobile‑first design (`sm`, `md`, `lg`, `xl`).
+* Forms and tables must be fully usable on mobile.
+
+---
+
+## 6) Performance
+
+* Icons and charts lazy‑loaded where possible.
+* Use `next/image` for images with `alt` text.
+* Avoid unnecessary re‑renders by memoizing heavy components (charts, tables).
+
+---
+
+## 7) Definition of Done (UI Story)
+
+1. Component built using shadcn/ui primitive(s).
+2. Styles applied only via Tailwind theme tokens.
+3. No custom CSS unless added centrally under `/styles/`.
+4. Icons from lucide-react; charts from Recharts.
+5. Accessible by keyboard and screen reader.
+6. Responsive across mobile → desktop.
+7. Skeleton + empty states implemented where async data shown.
+
+---
+
+## 8) Linked Rule Documents
+
+* **Frontend (routing, API consumption)** → `frontend.mdc`
+* **Backend service rules** → `backend.mdc`
+* **Architecture overview** → `architecture.mdc`
+* **Database rules** → `database.mdc`
+
+---
+
+> **Reminder**: Never hardcode styles. Update theme → update everywhere.

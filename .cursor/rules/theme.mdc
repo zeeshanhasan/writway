@@ -1,0 +1,69 @@
+---
+alwaysApply: true
+---
+# Theme Rules (theme.mdc)
+
+## Overview
+This file defines the design tokens (colors, typography, spacing, radii) for WritWay.
+All frontend development must use these tokens to ensure consistent branding.
+
+---
+
+## Colors
+
+- **Primary:** `#1A1A1A` (Charcoal)
+- **Background:** `#F5F1EB` (Warm Beige)
+- **Accent (Brand):** `#FF6B35` (Orange/Coral)
+- **Secondary Accent:** `#2563EB` (Muted Blue)
+- **Success:** `#22C55E` (Green)
+- **Error:** `#DC2626` (Red)
+- **Neutral Light:** `#F9FAFB`
+- **Neutral Mid:** `#6B7280`
+- **Neutral Dark:** `#111827`
+
+---
+
+## Typography
+
+- **Font Family:** "Inter", "Helvetica Neue", Arial, sans-serif
+- **Font Weights:**
+  - Regular: 400
+  - Medium: 500
+  - Bold: 700
+- **Scale (rem):**
+  - h1: 2.25rem
+  - h2: 1.875rem
+  - h3: 1.5rem
+  - body: 1rem
+  - small: 0.875rem
+
+---
+
+## Layout & Spacing
+
+- **Border Radius:** 12px (rounded but professional)
+- **Card Shadow:** subtle, use `0 2px 6px rgba(0,0,0,0.08)`
+- **Container Widths:**
+  - Max content width: 1280px
+  - Gutter: 16px
+
+---
+
+## Dark Mode (Optional)
+
+- **Background:** `#0C0C0D`
+- **Text:** `#F5F1EB`
+- **Accent:** `#FF6B35`
+- **Neutral:** Shades of gray from `#1F2937` to `#9CA3AF`
+
+---
+
+## Rules
+
+1. All components must use tokens defined here (no hardcoded colors, fonts, or shadows).
+2. Primary actions (buttons, highlights) use **Accent (Orange/Coral)**.
+3. Secondary actions or highlights may use **Muted Blue**.
+4. Backgrounds default to **Warm Beige** in light mode, **Charcoal** in dark mode.
+5. Typography scale must follow the defined system.
+
+---
