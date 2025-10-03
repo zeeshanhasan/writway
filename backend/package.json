@@ -10,8 +10,8 @@
     "postinstall": "prisma generate",
     "test": "jest",
     "lint": "eslint src --ext .ts",
-    "migrate": "cd ../database && npx prisma migrate dev",
-    "studio": "cd ../database && npx prisma studio"
+    "migrate": "npx prisma migrate dev",
+    "studio": "npx prisma studio"
   },
   "keywords": [],
   "author": "",
@@ -35,6 +35,6 @@
     "typescript": "^5.3.3"
   },
   "prisma": {
-    "schema": "../database/prisma/schema.prisma"
+    "schema": "prisma/schema.prisma"
   }
 }

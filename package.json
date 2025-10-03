@@ -3,11 +3,6 @@
   "version": "1.0.0",
   "description": "Multi-tenant SaaS platform for paralegals and small legal practices",
   "private": true,
-  "workspaces": [
-    "backend",
-    "frontend",
-    "database"
-  ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && npm run dev",
