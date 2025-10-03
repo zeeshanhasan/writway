@@ -2,150 +2,111 @@
 
 ## Goal
 
-Initialize the WritWay project monorepo with backend, frontend, and database boilerplate according to the rules defined in `.cursor/rules`.
+Bootstrap separate frontend and backend projects aligned to the Cursor rules and new deployment direction:
+
+* Vercel-only deployments
+* Frontend served at `https://writway.com`
+* Backend (API) served at `https://api.writway.com`
+* Supabase (PostgreSQL) as the database via Prisma
+* CI-driven migrations; no migrations during build/request time
 
 ---
 
 ## Deliverables
 
-* Monorepo structure:
+* Repository structure:
 
   ```
-  /backend   → Node.js + Express + Prisma API
+  /backend   → Node.js + Express (serverless via serverless-http) + Prisma (Supabase)
   /frontend  → Next.js (App Router) + shadcn/ui + Tailwind
-  /database  → Prisma schema + migrations + seeds
   ```
-* Shared configs: `.gitignore`, `.editorconfig`, `tsconfig.base.json`, root `package.json` with workspaces.
+* Per-app install model: each app has its own `package.json` and `package-lock.json`.
+* Rule-conformant configs under `.cursor/rules` (backend, frontend, database, devops).
+* No Docker Compose; use Supabase for dev/staging and Vercel for hosting.
 
 ---
 
 ## Backend
 
-* Initialize Node.js project with TypeScript.
-* Install deps:
+### Stack & layout
+* Node.js (LTS), Express, Zod, Prisma, `serverless-http`.
+* Foldering per `backend.mdc` (`/src/api`, `/services`, `/repositories`, `/middlewares`, `/schemas`, `/utils`, `/config`).
 
-  * `express`, `cors`, `dotenv`, `zod`
-  * `prisma`, `@prisma/client`
-  * Dev: `ts-node`, `nodemon`, `typescript`
-* `src/index.ts`:
+### Dependencies
+* Runtime: `express`, `cors`, `dotenv`, `zod`, `prisma`, `@prisma/client`, `serverless-http`.
+* Dev: `typescript`, `ts-node`, `nodemon`, `jest`, `supertest`.
 
-  ```ts
-  import express from 'express';
-  import cors from 'cors';
-  import { PrismaClient } from '@prisma/client';
+### Serverless entry
+* Export Express app (no `listen`) and wrap with `serverless-http` under `api/index.ts`.
+* Local dev uses `src/index.ts` with `app.listen` guarded for non-serverless.
 
-  const app = express();
-  const prisma = new PrismaClient();
+### API conventions
+* Base path: `/api/v1`.
+* Standard response envelope; error codes registry.
+* CORS: allow `https://writway.com` (prod), `http://localhost:3000` (dev).
+* Auth: Google OAuth handled by frontend; backend issues JWT + refresh. Cookies (if used): `domain=.writway.com`, `Secure`, `HttpOnly`, `SameSite=None`.
+* Health: `/health` (basic), `/ready` (DB and deps).
+* Rate limiting and logging per rules.
 
-  app.use(cors());
-  app.use(express.json());
+### Prisma & Supabase
+* Place `schema.prisma` at `backend/prisma/schema.prisma`.
+* `DATABASE_URL` uses Supabase (prefer pooled `pgbouncer=true&connection_limit=1`).
+* Migrations via CI/CD only (`prisma migrate deploy` on merge to `main`).
+* No migrations at Vercel build or request time.
+* Multi-tenancy enforced via Prisma middleware (`tenant_id` scoping).
 
-  app.get('/health', async (_req, res) => {
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      res.json({ status: 'ok', db: 'connected' });
-    } catch (err) {
-      res.json({ status: 'ok', db: 'disconnected' });
-    }
-  });
-
-  app.listen(4000, () => {
-    console.log('Backend running on http://localhost:4000');
-  });
-  ```
-* Prisma setup:
-
-  * `schema.prisma` configured for PostgreSQL.
-  * Use `DATABASE_URL` in `.env` (format: `postgresql://user:pass@localhost:5432/writway`).
-* Scripts:
-
-  * `dev` → run nodemon
-  * `migrate` → run prisma migrate
-  * `studio` → open prisma studio
-
----
-
-## Database
-
-* Initialize Prisma schema.
-* Run initial migration: `npx prisma migrate dev --name init`.
-* Seed script (`prisma/seed.ts`):
-
-  * Roles (SUPER_ADMIN, ORG_ADMIN, STAFF).
-  * Super Admin account.
-  * Countries + cities from ISO data.
+### Scripts
+* `dev` (nodemon), `build` (tsc), `start` (node dist), `migrate` (prisma migrate dev for local), `studio`.
 
 ---
 
 ## Frontend
 
-* Initialize Next.js App Router project with TypeScript.
-* Install deps:
+### Stack & layout
+* Next.js (App Router, TypeScript), shadcn/ui, Tailwind, React Query.
+* Project structure per `frontend.mdc` (`/(public)`, `/(dashboard)`, components, features, lib, providers).
 
-  * `@tanstack/react-query`
-  * `lucide-react`
-  * `recharts`
-  * `@hookform/resolvers`, `react-hook-form`, `zod`
-* Install shadcn/ui:
+### Dependencies
+* `@tanstack/react-query`, `lucide-react`, `recharts`, `@hookform/resolvers`, `react-hook-form`, `zod`.
 
-  * `npx shadcn-ui init`
-  * Add components: `button`, `input`, `form`, `dialog`, `toast`, `table`
-* Routing:
+### Data access
+* API base URL from `process.env.NEXT_PUBLIC_API_URL` (prod: `https://api.writway.com`).
+* Use a typed SDK generated from OpenAPI; no raw fetches inside components.
+* Global error handling for envelope errors; skeletons and empty states.
 
-  * `/(public)` → home page with header/footer layout.
-  * `/(dashboard)` → placeholder dashboard with sidebar layout.
-* Public home page stub:
-
-  ```tsx
-  export default function HomePage() {
-    return (
-      <main>
-        <h1>Welcome to WritWay</h1>
-        <p>Public landing page placeholder</p>
-      </main>
-    );
-  }
-  ```
-* Middleware stub for auth in `middleware.ts`.
+### Routing & auth
+* `(public)` for marketing; `(dashboard)` protected via server-side session checks (middleware).
+* If cookies used for auth, ensure cookie domain `.writway.com`.
 
 ---
 
-## Dev Experience
+## DevOps & Environments
 
-* Root `package.json` with workspaces (`backend`, `frontend`, `database`).
-* Shared `.gitignore`, `.editorconfig`, `tsconfig.base.json`.
-* Docker Compose:
+### Domains & Vercel projects
+* Frontend project → `writway.com`
+* Backend project → `api.writway.com`
 
-  ```yaml
-  version: '3.9'
-  services:
-    postgres:
-      image: postgres:15
-      ports:
-        - '5432:5432'
-      environment:
-        POSTGRES_USER: writway
-        POSTGRES_PASSWORD: writway
-        POSTGRES_DB: writway
-    backend:
-      build: ./backend
-      ports:
-        - '4000:4000'
-      depends_on:
-        - postgres
-    frontend:
-      build: ./frontend
-      ports:
-        - '3000:3000'
-      depends_on:
-        - backend
-  ```
-* Root command: `npm run dev` → runs backend + frontend concurrently.
+### Environment variables
+* Frontend: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_ENV`.
+* Backend: `DATABASE_URL` (Supabase), `JWT_SECRET`, `CORS_ORIGIN`, `COOKIE_DOMAIN`, provider keys.
+
+### CI/CD
+* GitHub Actions job on merge to `main`:
+  * `npm ci` in `backend`
+  * `npx prisma migrate deploy`
+  * Run backend tests (optional but recommended)
+* Vercel auto-deploys both projects from `main`.
+
+### Local development
+* Use a dedicated Supabase dev/staging project. Do not write to production DB from local.
+* If read-only access to prod is required for debugging, create a limited user and restrict IPs.
+* Keep email/webhooks/billing gated behind environment checks in dev.
 
 ---
 
 ## Success Criteria
 
-* Run `docker-compose up` → Postgres, backend, and frontend start.
-* Visit `http://localhost:4000/health` → returns `{ status: 'ok', db: 'connected' }` if DB is up.
-* Visit `http://localhost:3000` → Next.js home page loads.
+* Backend deploys on Vercel and serves `/api/v1/health` and `/ready` successfully.
+* Frontend deploys on Vercel and reads `NEXT_PUBLIC_API_URL` to call the API.
+* CI successfully applies Prisma migrations to Supabase on `main`.
+* CORS and cookies (if used) behave correctly across `writway.com` and `api.writway.com`.

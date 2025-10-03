@@ -67,6 +67,8 @@ Binding rules for the WritWay frontend. Optimized for App Router, strong routing
   * **Server Components**: read session via server helpers; deny early (no client‑only guards).
 * Auth routes (`/auth/*`) are public but hidden for logged‑in users (redirect to dashboard if session exists).
 
+Production domain: `https://writway.com`. If using cookies for auth, set cookie domain to `.writway.com` to share across subdomains.
+
 ---
 
 ## 3) Layouts & Shells
@@ -92,6 +94,7 @@ Binding rules for the WritWay frontend. Optimized for App Router, strong routing
 
 * **Single source**: consume the backend via a **typed SDK generated from OpenAPI** (e.g., `openapi-typescript` + thin client, or `orval`).
 * **No raw `fetch`** in components; use `/lib/api` wrapper + hooks.
+* **Base URL** must come from `process.env.NEXT_PUBLIC_API_URL` (e.g., `https://api.writway.com`).
 * **React Query (TanStack Query)** for data fetching, caching, retries, and mutations.
 
   * Default stale time suitable for resource type; avoid chatty refetches.
