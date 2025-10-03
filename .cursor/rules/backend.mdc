@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Backend Guidelines
 
-> Authoritative rules for the Node.js API layer used by WritWay. These rules are binding for Cursor-generated code and human contributions.
+Authoritative rules for the Node.js API layer used by WritWay. These rules are binding for Cursor-generated code and human contributions.
 
 ---
 
@@ -19,14 +19,20 @@ alwaysApply: true
 
 ## 1) Tech & Runtime
 
-* **Runtime**: Node.js (latest LTS)
-* **Framework**: Express
-* **ORM**: Prisma (PostgreSQL)
+* **Runtime**: Node.js (latest LTS) on Vercel Serverless Functions
+* **Framework**: Express (wrapped via `serverless-http`) or native handlers
+* **ORM**: Prisma (PostgreSQL via Supabase; pooled connections recommended)
 * **Validation**: Zod
 * **Docs**: OpenAPI 3.0+ (Swagger UI served at `/api/docs` in non‑prod)
 * **Testing**: Jest + Supertest (integration)
 * **Queues / Jobs**: BullMQ (Redis) for async + scheduled work
 * **Env**: 12‑factor config via `.env` and process.env
+
+### 1.1 Deployment & Domains
+* **Platform**: Vercel-only deployments
+* **Prod Domains**: API served at `https://api.writway.com`
+* **Routing**: All HTTP routes mounted under `/api/v1` within Vercel functions (`/api/*`)
+* **Do not** run migrations at build or request time. See DevOps rules.
 
 ---
 
@@ -111,6 +117,7 @@ alwaysApply: true
   * `STAFF` / `USER` (scoped permissions)
 * **Tenant isolation**: all DB queries must be scoped by `tenant_id` via Prisma middleware.
 * **Session storage**: stateless JWT; refresh token rotation required; revoke on logout/device removal.
+* **Cookies/Headers**: If cookies are used, set `domain=.writway.com`, `Secure`, `HttpOnly`, `SameSite=None`.
 
 ---
 
@@ -119,6 +126,7 @@ alwaysApply: true
 * **Edge validation**: all inputs validated via Zod/Joi in controllers.
 * **Sanitization**: escape/strip dangerous content; never trust user HTML.
 * **Headers**: Helmet, CORS allowlist per environment.
+* **CORS**: Production allowlist `https://writway.com`; dev allow `http://localhost:3000`.
 * **Rate limiting**: global + per‑route via middleware; stricter for mutation routes.
 * **Secrets**: loaded from env; never logged; rotate regularly.
 * **PII/Legal**: minimize logging of PII, support data redaction, implement data retention windows.
@@ -142,7 +150,8 @@ alwaysApply: true
 * **UUID** primary keys, `snake_case` columns, plural table names.
 * **Multi‑tenancy**: mandatory `tenant_id` on isolated tables. Prisma middleware auto‑injects where clause.
 * **Transactions**: wrap related writes in `prisma.$transaction`.
-* **Migrations**: exclusively via `prisma migrate` in CI/CD; no manual prod changes.
+* **Migrations**: exclusively via `prisma migrate` in CI/CD (GitHub Actions). Never in Vercel build or at request time.
+* **Connections**: Use Supabase pooled connections (pgBouncer) or Prisma Accelerate for serverless.
 
 ---
 

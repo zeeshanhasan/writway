@@ -10,9 +10,9 @@ This project is a **multi-tenant SaaS platform** for paralegals and small legal 
 It automates documentation workflows, client communication, and case management, while providing CRM, tasks, pipeline, billing, and analytics.
 
 ## Tech Stack
-- **Backend**: Node.js (API-first, modular service design)
-- **Frontend**: Next.js (App Router, dashboard UI)
-- **Database**: PostgreSQL + Prisma ORM
+- **Backend**: Node.js (Vercel Serverless Functions; API-first, modular service design)
+- **Frontend**: Next.js (App Router, dashboard UI) on Vercel
+- **Database**: Supabase (PostgreSQL) + Prisma ORM
 - **Auth**: Google Workspace OAuth2
 - **Billing**: Stripe API
 - **File Handling**: PDF generation + storage (S3 or equivalent)
@@ -21,8 +21,7 @@ It automates documentation workflows, client communication, and case management,
 ## Folder Structure
 - `/backend` → Node.js services & REST API layer  
 - `/frontend` → Next.js app (dashboards, client portal)  
-- `/database` → Prisma schema, migrations, seeds  
-- `/infra` → Infrastructure-as-Code, CI/CD, environment configs  
+- `/infra` → CI/CD and environment configs (migrations via GitHub Actions)  
 - `/docs` → `.cursor/rules/*.mdc` files (guidelines & conventions)  
 
 ## Security Layer
@@ -37,7 +36,7 @@ It automates documentation workflows, client communication, and case management,
   - Principle of Least Privilege for all services  
 
 ## Integration Points
-- Backend ↔ Database (Prisma ORM)  
+- Backend ↔ Database (Prisma ORM via Supabase)  
 - Backend ↔ Email (Google API sync)  
 - Backend ↔ Billing (Stripe API + webhooks)  
 - Backend ↔ File Storage (PDFs in S3/equivalent)  

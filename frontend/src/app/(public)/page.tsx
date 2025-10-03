@@ -1,9 +1,9 @@
-export default function Home() {
+export default function PublicHomePage() {
   return (
-    <div className="text-center">
-      <h1 className="text-3xl font-bold">Coming soon</h1>
-    </div>
+    <section>
+      <h1 style={{ fontSize: 'var(--font-size-h1)', marginBottom: 8 }}>Welcome to WritWay</h1>
+      <p>Soon.</p>
+    </section>
   );
 }
-
 

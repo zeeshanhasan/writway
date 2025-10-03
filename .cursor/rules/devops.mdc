@@ -1,0 +1,65 @@
+---
+alwaysApply: true
+---
+# DevOps & Environments
+
+Authoritative rules for Vercel deployments, domains, environment variables, and database migrations.
+
+---
+
+## Platforms & Domains
+
+* **Platform**: Vercel-only deployments.
+* **Production Frontend**: `https://writway.com`
+* **Production Backend (API)**: `https://api.writway.com`
+* Configure custom domains in Vercel and enforce HTTPS.
+
+---
+
+## Environment Variables (by project)
+
+### Frontend (Vercel Project: frontend)
+* `NEXT_PUBLIC_API_URL` → `https://api.writway.com` (prod)
+* `NEXT_PUBLIC_ENV` → `production|staging|development`
+
+### Backend (Vercel Project: backend)
+* `DATABASE_URL` → Supabase connection string (prefer pooled / pgBouncer)
+* `JWT_SECRET` → strong secret
+* `CORS_ORIGIN` → `https://writway.com` (prod), `http://localhost:3000` (dev)
+* `COOKIE_DOMAIN` → `.writway.com` (if cookies used)
+* Provider keys (Stripe, Google, etc.) as needed
+
+---
+
+## Database & Migrations (Supabase + Prisma)
+
+* Use Prisma with Supabase (PostgreSQL). Prefer pooled connection strings for serverless.
+* Migrations are applied by CI/CD (GitHub Actions) using `prisma migrate deploy`.
+* Never run migrations in Vercel builds or at request time.
+* Keep `DATABASE_URL` in Vercel and GitHub Secrets. Rotate regularly.
+
+---
+
+## CORS & Security
+
+* CORS allowlist: production `https://writway.com`; dev `http://localhost:3000`.
+* Cookies (if used): `domain=.writway.com`, `Secure`, `HttpOnly`, `SameSite=None`.
+* Secrets never logged; PII minimized; audit logging for critical actions.
+
+---
+
+## Local Development
+
+* Do not point local writes to production DB.
+* Use a dev/staging Supabase project with the same schema via Prisma migrations.
+* If read-only access to prod is required, provision a limited role and restrict IPs.
+
+---
+
+## CI/CD
+
+* On merge to `main`:
+  1. Backend: `npm ci` → `npx prisma migrate deploy` → (optional) tests
+  2. Vercel auto-deploys frontend and backend projects from `main`.
+* On feature branches: preview deployments in Vercel; no migrations applied to prod.
+

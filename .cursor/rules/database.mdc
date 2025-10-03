@@ -8,7 +8,7 @@ Authoritative rules for PostgreSQL + Prisma database design in WritWay. These co
 
 ## 0) Scope & Goals
 
-* **Scope**: All PostgreSQL schemas managed via Prisma ORM.
+* **Scope**: All PostgreSQL schemas managed via Prisma ORM, hosted on Supabase in all environments.
 * **Goals**: Consistent naming, safe migrations, secure multi-tenancy, and a living schema doc for clarity.
 
 ---
@@ -64,8 +64,8 @@ Authoritative rules for PostgreSQL + Prisma database design in WritWay. These co
 ## 6) Migrations
 
 * **Tool**: Prisma migrate exclusively.
-* **Process**: generate migration → review in PR → apply in staging → apply in production via CI/CD.
-* **Prohibited**: manual `psql` schema edits in production.
+* **Process**: generate migration → review in PR → apply in staging → apply in production via CI/CD (GitHub Actions).
+* **Prohibited**: manual `psql` schema edits in production; running migrations from Vercel builds or functions.
 * **Deprecations**: never drop a column directly. Steps:
 
   1. Mark as deprecated in schema.
@@ -100,7 +100,13 @@ Authoritative rules for PostgreSQL + Prisma database design in WritWay. These co
 
 ## 9) Data Protection & Compliance
 
-* Store PII (e.g., names, emails) in normalized tables.
+* Store PII (e.g., names, emails) in normalized tables. Supabase at-rest encryption enabled by default.
+## 12) Supabase-Specific Guidance
+
+* Prefer pooled connection strings (pgBouncer) for serverless. Example: `...:6543/postgres?pgbouncer=true&connection_limit=1`.
+* Rotate credentials via Supabase dashboard and GitHub Secrets; never commit.
+* Local development should target a dev/staging Supabase project. Do not point local dev writes at production.
+* If read-only access to prod is required for debugging, provision a limited role and restrict IPs.
 * Encrypt sensitive fields (at application layer if required).
 * Enable **pgcrypto** if DB-level encryption is required later.
 * Apply data retention rules (auto-delete data past policy).
