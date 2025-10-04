@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   /* Colors */
   --color-primary: #1A1A1A; /* Charcoal */
@@ -32,13 +34,7 @@
   box-sizing: border-box;
 }
 
-html, body {
-  padding: 0;
-  margin: 0;
-  font-family: var(--font-family);
-  background: var(--color-background);
-  color: var(--color-primary);
-}
+html, body { @apply p-0 m-0 bg-[var(--color-background)] text-[var(--color-primary)]; font-family: var(--font-family); }
 
 a {
   color: inherit;
@@ -57,13 +53,7 @@ header.site-header {
   border-bottom: none;
 }
 
-.header-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0;
-  position: relative; /* for centering nav */
-}
+.header-inner { @apply flex items-center justify-between py-4 relative; }
 
 .brand {
   font-weight: var(--font-weight-bold);
@@ -72,10 +62,7 @@ header.site-header {
   text-transform: uppercase;
 }
 
-.nav {
-  display: flex;
-  gap: 20px;
-}
+.nav { @apply flex gap-5; }
 
 .header-center {
   position: absolute;
@@ -100,22 +87,65 @@ header.site-header {
 
 footer.site-footer {
   margin-top: 48px;
-  border-top: 1px solid rgba(0,0,0,0.06);
-  background: #fff;
+  background: var(--color-primary); /* Charcoal background */
+  color: white;
 }
 
-.footer-inner {
+.footer-inner { 
+  @apply flex items-center justify-between py-6 text-sm;
+  color: white;
+}
+
+.footer-left {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 24px 0;
-  color: var(--color-neutral-mid);
+  gap: 24px;
+}
+
+.copyright {
+  color: white;
   font-size: var(--font-size-small);
 }
 
 .footer-links {
   display: flex;
   gap: 16px;
+}
+
+.footer-links a {
+  color: white;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.footer-links a:hover {
+  opacity: 1;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+}
+
+.social-icons {
+  display: flex;
+  gap: 12px;
+}
+
+.social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.social-icon:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .pill-primary {
@@ -127,23 +157,20 @@ footer.site-footer {
   box-shadow: var(--shadow-card);
 }
 
-.auth-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
+.auth-actions { @apply flex gap-2 items-center; }
 
-.btn-black {
-  display: inline-block;
-  padding: 10px 16px;
-  background: var(--color-primary);
-  color: #fff;
-  border-radius: var(--radius);
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-bold);
-}
+.btn-black { @apply inline-block px-4 py-2 bg-[var(--color-primary)] text-white rounded-[12px] text-sm font-bold; }
 
 .btn-black.prominent {
+  padding: 12px 18px;
+}
+
+/* Outline button to match login scale when prominent */
+.btn-outline {
+  @apply inline-block px-4 py-2 rounded-[12px] text-sm font-bold border border-[var(--color-primary)] text-[var(--color-primary)];
+}
+
+.btn-outline.prominent {
   padding: 12px 18px;
 }
 
