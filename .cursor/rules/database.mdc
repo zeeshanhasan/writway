@@ -89,12 +89,13 @@ Authoritative rules for PostgreSQL + Prisma database design in WritWay. These co
 
 ## 8) Schema Documentation
 
-* Maintain a separate `schema.mdc` as a **living document**.
-* `schema.mdc` must:
+* Maintain a separate `database_schema.mdc` (in `.cursor/rules/`) as a **living document** and source of truth.
+* `database_schema.mdc` must:
 
   * List all tables, columns, and relationships.
   * Show ER diagrams (generate from Prisma ERD tools).
   * Be updated with every migration.
+* CI rule: Any change to Prisma models requires updating `database_schema.mdc` in the same PR; builds fail on drift.
 
 ---
 

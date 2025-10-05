@@ -1,0 +1,75 @@
+# Database Schema (Source of Truth)
+
+This document is the canonical source of truth for our relational schema. Any change to database tables, columns, or relations MUST update this file in the same PR. CI will be configured to check for drift.
+
+Last updated: 2025-10-05
+
+## Conventions
+- UUID/CUID primary keys on all tables (`id STRING` via Prisma cuid())
+- snake_case column names at the DB level (Prisma maps to camelCase in code)
+- Timestamps: `createdAt`, `updatedAt` (managed by Prisma)
+- Multi-tenancy: `tenantId` on tenant-scoped tables; all queries must be tenant-filtered in services/repositories
+
+## Entities
+
+### User
+- id (String, cuid, PK)
+- googleId (String, unique, nullable)
+- email (String, unique)
+- name (String)
+- image (String, nullable)
+- role (Enum: SUPER_ADMIN | OWNER | ADMIN | USER; default OWNER)
+- tenantId (String, FK → Tenant.id)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+Relations:
+- User belongs to Tenant
+
+### Tenant
+- id (String, cuid, PK)
+- name (String, nullable)
+- address (String, nullable)
+- country (String, nullable)
+- city (String, nullable)
+- businessType (String, nullable)
+- practiceAreas (String, nullable)
+- activeClients (Int, nullable)
+- goals (String, nullable)
+- planId (String, FK → Plan.id)
+- isOnboardingComplete (Boolean, default false)
+- trialEndsAt (DateTime, nullable)
+- createdAt (DateTime)
+- updatedAt (DateTime)
+
+Relations:
+- Tenant has many Users
+- Tenant belongs to Plan
+
+### Plan
+- id (String, cuid, PK)
+- name (String, unique)
+- priceMonthly (Float)
+- seatLimit (Int)
+- clientLimit (Int)
+- hasTrial (Boolean)
+- trialDays (Int, nullable)
+- features (JSON)
+
+Relations:
+- Plan has many Tenants
+
+## ER Summary
+- Plan 1—* Tenant
+- Tenant 1—* User
+
+## Migration Notes
+- Initial migration should create tables: `Plan`, `Tenant`, `User`
+- Seed default plans (Free, Plus, Pro, Enterprise)
+- Add indexes: unique on `User.email`, `User.googleId`, `Plan.name`; FKs on `User.tenantId`, `Tenant.planId`
+
+## Change Management Rule
+- Any schema change (Prisma model/edit) MUST update this file in the same PR.
+- PR checklist must include: “database_schema.mdc updated”.
+- CI will fail if migrations are detected without a corresponding doc update.
+
