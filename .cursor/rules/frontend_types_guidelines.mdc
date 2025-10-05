@@ -1,0 +1,32 @@
+# Frontend Typing Guidelines (Next.js App Router)
+
+1) Strict TS everywhere
+- Keep `strict: true` in `tsconfig.json`.
+- Prefer explicit return types on exported functions.
+
+2) API client typing
+- Use a single ApiEnvelope<T> shape matching backend response envelope.
+- Make the API client `request<T>()` generic and return typed envelopes from each endpoint method.
+- In components, narrow `response.data` to domain types before accessing fields.
+
+3) Env and URLs
+- Read base URL from `process.env.NEXT_PUBLIC_API_URL` only.
+- Avoid hardcoding; provide safe fallbacks only for local dev.
+
+4) Browser-only APIs
+- Guard `localStorage`, `window`, `document` behind `typeof window !== 'undefined'`.
+
+5) Component state
+- Always type `useState` with explicit generics when not inferable.
+- Prefer discriminated unions for multi-state flows.
+
+6) Error handling
+- Surface API envelope errors consistently; avoid `any`.
+- Log errors minimally without PII.
+
+7) Imports & paths
+- Use `@/*` path alias for app code (`baseUrl":".", paths`).
+
+8) Build hygiene
+- Ensure `npm run build` passes locally before pushing.
+- Keep `@types/*` dependencies aligned with React and Next versions.
