@@ -1,19 +1,14 @@
 // Enhanced serverless health handler mirroring Express /api/health
 // Returns overall status, timestamp, uptime, and service checks (api, database, auth, billing)
 
-import { PrismaClient } from '@prisma/client';
-// Use CommonJS require to avoid import assertions issues in Vercel TS runtime
+// Use CommonJS require to avoid TS import assertion issues
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pkg = require('../../package.json');
-
-const prisma = new PrismaClient();
+import { Client } from 'pg';
 
 export default async function handler(_req: any, res: any) {
-  const startedAt = process.hrtime.bigint();
-
   const apiStatus = { status: 'ok' };
 
-  // Database probe
   const dbStatus: {
     status: 'ok' | 'error';
     connected: boolean;
@@ -30,64 +25,52 @@ export default async function handler(_req: any, res: any) {
     tables: { count: null, names: [] },
   };
 
-  try {
-    const dbStart = process.hrtime.bigint();
-    await prisma.$connect();
-    const dbEnd = process.hrtime.bigint();
-    dbStatus.latency_ms = Number(dbEnd - dbStart) / 1_000_000; // ns -> ms
+  const start = Date.now();
+  const dbUrl = process.env.DATABASE_URL;
 
-    // Derive DB name and project ref from DATABASE_URL/SUPABASE_URL
-    try {
-      const url = process.env.DATABASE_URL;
-      if (url) {
-        const u = new URL(url);
-        dbStatus.name = (u.pathname || '').replace(/^\//, '') || null;
-        const username = u.username || '';
-        const refFromUser = username.match(/^postgres\.([a-z0-9\-]+)$/i);
-        if (refFromUser) {
-          dbStatus.projectRef = refFromUser[1];
-        } else if (process.env.SUPABASE_URL) {
-          try {
-            const su = new URL(process.env.SUPABASE_URL);
-            const host = su.hostname;
-            const m = host.match(/^([a-z0-9]{20,})\.supabase\.co$/);
-            if (m) dbStatus.projectRef = m[1];
-          } catch {}
-        }
-      }
-    } catch {}
-
-    // List application tables (filter to public, exclude prisma migrations)
-    try {
-      const rows = await prisma.$queryRawUnsafe<{ table_name: string }[]>(
-        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> '_prisma_migrations' ORDER BY table_name"
-      );
-      const names = Array.isArray(rows) ? rows.map((r) => r.table_name) : [];
-      dbStatus.tables = { count: names.length, names };
-    } catch (err: any) {
-      console.error('DB tables probe error:', err?.message);
-    }
-  } catch (error: any) {
-    console.error('DB health probe error:', error?.message);
+  if (!dbUrl) {
     dbStatus.status = 'error';
     dbStatus.connected = false;
-  } finally {
+  } else {
     try {
-      await prisma.$disconnect();
+      const u = new URL(dbUrl);
+      dbStatus.name = (u.pathname || '').replace(/^\//, '') || null;
+      const username = u.username || '';
+      const refFromUser = username.match(/^postgres\.([a-z0-9\-]+)$/i);
+      if (refFromUser) dbStatus.projectRef = refFromUser[1];
     } catch {}
+
+    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    try {
+      await client.connect();
+      await client.query('SELECT 1');
+      dbStatus.latency_ms = Date.now() - start;
+      try {
+        const r = await client.query(
+          "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> '_prisma_migrations' ORDER BY table_name"
+        );
+        const names = r.rows.map((row: any) => row.table_name);
+        dbStatus.tables = { count: names.length, names };
+      } catch (e: any) {
+        console.error('DB tables probe error:', e?.message);
+      }
+    } catch (err: any) {
+      console.error('DB health probe error:', err?.message);
+      dbStatus.status = 'error';
+      dbStatus.connected = false;
+    } finally {
+      try { await client.end(); } catch {}
+    }
   }
 
   const authStatus = { status: 'ok', provider: 'google' } as const;
   const billingStatus = { status: 'ok', provider: 'stripe' } as const;
-
   const overall: 'ok' | 'error' = dbStatus.status === 'ok' ? 'ok' : 'error';
-  const now = new Date();
-  const uptimeSeconds = Math.floor(process.uptime());
 
   const response = {
     status: overall,
-    timestamp: now.toISOString(),
-    uptime: `${uptimeSeconds}s`,
+    timestamp: new Date().toISOString(),
+    uptime: `${Math.floor(process.uptime())}s`,
     services: {
       api: apiStatus,
       database: dbStatus,
