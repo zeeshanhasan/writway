@@ -34,6 +34,14 @@ Authoritative rules for the Node.js API layer used by WritWay. These rules are b
 * **Routing**: All HTTP routes mounted under `/api/v1` within Vercel functions (`/api/*`)
 * **Do not** run migrations at build or request time. See DevOps rules.
 
+### 1.2 Serverless Health & DB Checks (Vercel)
+* Health probes in serverless functions must use a lightweight PG client (`pg`), not Prisma. Prisma engines are heavyweight for cold starts and may fail inside short-lived functions.
+* Use the pooled Supabase connection string for serverless (`...:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require`).
+* Ensure `DATABASE_URL` is set in the Vercel Backend project. Optionally set `DIRECT_DATABASE_URL` for CI migrations only (never used at runtime).
+* Avoid prepared statements in serverless contexts. If Prisma is used elsewhere, set `PRISMA_DISABLE_PREPARED_STATEMENTS=true`.
+* For table listings in health, query `information_schema.tables` and exclude `_prisma_migrations`.
+* Keep logs minimal and never print secrets; log only error messages.
+
 ---
 
 ## 2) Folder Structure & Layering
