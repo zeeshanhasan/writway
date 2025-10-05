@@ -35,12 +35,14 @@ export default function WelcomePage() {
     const checkAuth = async () => {
       try {
         const response = await apiClient.getCurrentUser();
-        if (response.success) {
-          setUser(response.data.user);
-          setTenant(response.data.tenant);
+        if (response && response.success) {
+          // Narrow unknown types
+          const data = response.data as { user: User; tenant: Tenant };
+          setUser(data.user);
+          setTenant(data.tenant);
           
           // If onboarding is already complete, redirect to dashboard
-          if (response.data.tenant.isOnboardingComplete) {
+          if (data.tenant.isOnboardingComplete) {
             router.push('/dashboard');
             return;
           }

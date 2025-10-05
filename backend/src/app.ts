@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 
 export const app = express();
@@ -10,7 +10,7 @@ app.use(cors({
 app.use(express.json());
 
 // basic request logging for debugging on Vercel
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   console.log(`[req] ${req.method} ${req.url}`);
   res.on('finish', () => {
@@ -20,12 +20,12 @@ app.use((req, res, next) => {
 });
 
 // Liveness: fast, no external calls
-app.get('/api/v1/health', (_req, res) => {
+app.get('/api/v1/health', (_req: Request, res: Response) => {
   res.json({ success: true, data: { status: 'ok' }, error: null });
 });
 
 // Readiness: checks DB connectivity with a short timeout (lazy Prisma init)
-app.get('/api/v1/ready', async (_req, res) => {
+app.get('/api/v1/ready', async (_req: Request, res: Response) => {
   const timeoutMs = 3000;
   const timeoutPromise = new Promise((_resolve, reject) => {
     const id = setTimeout(() => {
