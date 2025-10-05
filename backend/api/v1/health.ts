@@ -1,13 +1,14 @@
 // Enhanced serverless health handler mirroring Express /api/health
 // Returns overall status, timestamp, uptime, and service checks (api, database, auth, billing)
 
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { PrismaClient } from '@prisma/client';
-import pkg from '../../package.json' assert { type: 'json' };
+// Use CommonJS require to avoid import assertions issues in Vercel TS runtime
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pkg = require('../../package.json');
 
 const prisma = new PrismaClient();
 
-export default async function handler(_req: VercelRequest, res: VercelResponse) {
+export default async function handler(_req: any, res: any) {
   const startedAt = process.hrtime.bigint();
 
   const apiStatus = { status: 'ok' };
