@@ -26,6 +26,7 @@ class ApiClient {
     const token = this.getToken();
 
     const config: RequestInit = {
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

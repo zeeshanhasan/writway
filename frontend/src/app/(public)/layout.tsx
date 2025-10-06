@@ -1,6 +1,29 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+  let isAuthed = false;
+  try {
+    const cookie = headers().get('cookie') || '';
+    const res = await fetch(`${API_URL}/auth/me`, {
+      method: 'GET',
+      headers: {
+        cookie,
+        origin: 'http://localhost:3000',
+        'content-type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      isAuthed = Boolean(data && data.success);
+    }
+  } catch {
+    isAuthed = false;
+  }
+
   return (
     <>
       <header className="site-header">
@@ -12,8 +35,14 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <Link href="/resources">Resources</Link>
           </nav>
           <div className="auth-actions">
-            <Link href="/auth/register">Sign up</Link>
-            <Link className="btn-black prominent" href="/auth/login">Login</Link>
+            {isAuthed ? (
+              <Link href="/dashboard" className="btn-black prominent" style={{ cursor: 'pointer' }}>Dashboard</Link>
+            ) : (
+              <>
+                <Link href="/auth/register">Sign up</Link>
+                <Link className="btn-black prominent" href="/auth/login">Login</Link>
+              </>
+            )}
           </div>
         </div>
       </header>

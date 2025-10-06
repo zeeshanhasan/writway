@@ -3,7 +3,8 @@
 export default function LoginPage() {
   const handleGoogleAuth = () => {
     // Redirect to backend Google OAuth endpoint
-    window.location.href = 'http://localhost:3001/api/auth/google';
+    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    window.location.href = `${base}/auth/google`;
   };
 
   return (
@@ -51,12 +52,12 @@ export default function LoginPage() {
             {/* Additional Info */}
             <div className="text-center text-sm text-[var(--color-neutral-mid)]">
               <p>
-                By signing in, you agree to our{' '}
-                <a href="/terms" className="text-[var(--color-accent)] underline hover:underline">
+                By continuing, you agree to our{' '}
+                <a href="/terms" className="text-accent-secondary underline">
                   Terms of Service
                 </a>{' '}
                 and{' '}
-                <a href="/privacy" className="text-[var(--color-accent)] underline hover:underline">
+                <a href="/privacy" className="text-accent-secondary underline">
                   Privacy Policy
                 </a>
               </p>
