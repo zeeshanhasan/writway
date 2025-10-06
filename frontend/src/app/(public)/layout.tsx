@@ -1,17 +1,21 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   let isAuthed = false;
   try {
     const cookie = headers().get('cookie') || '';
-    const res = await fetch(`${API_URL}/auth/me`, {
+    const hdrs = headers();
+    const proto = hdrs.get('x-forwarded-proto') || 'https';
+    const host = hdrs.get('x-forwarded-host') || hdrs.get('host') || '';
+    const base = API_URL || `${proto}://${host}/api`;
+    const res = await fetch(`${base}/auth/me`, {
       method: 'GET',
       headers: {
         cookie,
-        origin: 'http://localhost:3000',
+        origin: `${proto}://${host}`,
         'content-type': 'application/json',
       },
       cache: 'no-store',

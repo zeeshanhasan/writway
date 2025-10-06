@@ -1,17 +1,19 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function isAuthenticated(request: NextRequest): Promise<boolean> {
   try {
     const cookie = request.headers.get('cookie') || '';
-    const res = await fetch(`${API_URL}/auth/me`, {
+    // Prefer explicit API_URL; fallback to same-origin guess if unset
+    const base = API_URL || `${request.nextUrl.protocol}//${request.nextUrl.host}/api`;
+    const res = await fetch(`${base}/auth/me`, {
       method: 'GET',
       headers: {
         cookie,
-        // Hint CORS (not strictly necessary server-to-server)
-        origin: 'http://localhost:3000',
+        // Reflect current request origin
+        origin: `${request.nextUrl.protocol}//${request.nextUrl.host}`,
         'content-type': 'application/json',
       },
       // Ensure no caching in middleware
