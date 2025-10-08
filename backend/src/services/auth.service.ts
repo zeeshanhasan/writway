@@ -38,11 +38,11 @@ export class AuthService {
 
     const accessToken = jwt.sign(payload, this.jwtSecret, {
       expiresIn: this.jwtExpiresIn
-    });
+    } as jwt.SignOptions);
 
     const refreshToken = jwt.sign(payload, this.jwtRefreshSecret, {
       expiresIn: this.jwtRefreshExpiresIn
-    });
+    } as jwt.SignOptions);
 
     return { accessToken, refreshToken };
   }
