@@ -29,6 +29,41 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
   });
 });
 
+// Debug endpoint to check environment variables
+app.get('/api/v1/debug/env', (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    data: {
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      hasJwtRefreshSecret: !!process.env.JWT_REFRESH_SECRET,
+      hasCorsOrigin: !!process.env.CORS_ORIGIN,
+      hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
+      hasGoogleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+      hasGoogleCallbackUrl: !!process.env.GOOGLE_CALLBACK_URL,
+      hasPrismaDisablePreparedStatements: !!process.env.PRISMA_DISABLE_PREPARED_STATEMENTS,
+      nodeEnv: process.env.NODE_ENV,
+      // Don't expose actual values for security
+      databaseUrlLength: process.env.DATABASE_URL?.length || 0,
+      corsOrigin: process.env.CORS_ORIGIN
+    },
+    error: null
+  });
+});
+
+// Simple test endpoint that doesn't require database
+app.get('/api/v1/test', (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    data: {
+      message: 'Serverless function is working!',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    },
+    error: null
+  });
+});
+
 app.get('/api/v1/ready', async (_req: Request, res: Response) => {
   const dbReady = await checkDatabaseReady();
   
