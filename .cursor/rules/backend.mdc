@@ -51,15 +51,69 @@ Authoritative rules for the Node.js API layer used by WritWay. These rules are b
 * **No JavaScript**: No `.js` files in source directories. Seed scripts and one-off tools may use JS if documented.
 * **Type safety**: Enable `strict: true` in tsconfig.json. No `any` types except in serverless handler signatures.
 
-### 1.4 Vercel Deployment Configuration
-* **Project setup**: Separate Vercel project for backend at `api.writway.com`.
-* **Required file**: `/backend/vercel.json` with function configuration.
-* **Runtime**: `nodejs20.x` for all functions.
-* **Regions**: Deploy to `iad1` (US East) or closest to Supabase region.
-* **Environment variables**: Set all required vars in Vercel dashboard, including `PRISMA_DISABLE_PREPARED_STATEMENTS=true`.
-* **Build command**: `npm run build` (TypeScript compilation).
-* **Output directory**: Functions from `/backend/api/**/*.ts`.
-* **No migrations at build time**: Migrations run via GitHub Actions before deploy.
+### 1.4 Vercel Deployment Configuration & File Structure
+
+**CRITICAL: Vercel Serverless Function Rules**
+
+Vercel maps file paths in `/api` directory directly to URL routes:
+- `api/v1/health.ts` → `/api/v1/health` endpoint
+- `api/v1/ready.ts` → `/api/v1/ready` endpoint
+- `api/index.ts` → `/api` endpoint (root only)
+
+**File Structure Requirements:**
+* Each TypeScript file in `/backend/api/**/*.ts` becomes a standalone serverless function
+* File path MUST match the desired URL path exactly
+* Each file must export a default function: `export default async function handler(req, res) { }`
+* Do NOT use catch-all routes like `[...path].ts` - they don't work reliably with Express apps
+* Do NOT try to route everything through a single Express app in `api/index.ts`
+
+**Individual Serverless Functions (REQUIRED PATTERN):**
+```typescript
+// api/v1/ready.ts
+import { checkDatabaseReady } from '../../src/utils/dbHealth';
+
+export default async function handler(_req: any, res: any) {
+  const dbReady = await checkDatabaseReady();
+  return res.status(dbReady ? 200 : 503).json({
+    success: dbReady,
+    data: { db: dbReady ? 'connected' : 'disconnected' },
+    error: dbReady ? null : { code: 'DB_UNAVAILABLE', message: 'Database not ready' }
+  });
+}
+```
+
+**Vercel Configuration (`vercel.json`):**
+```json
+{
+  "buildCommand": "npm run build && npx prisma generate",
+  "installCommand": "npm install",
+  "env": {
+    "PRISMA_DISABLE_PREPARED_STATEMENTS": "true"
+  }
+}
+```
+
+**Project Setup:**
+* Separate Vercel project for backend at `api.writway.com`
+* Runtime: Auto-detected from package.json (Node.js 20.x)
+* Regions: Deploy to `iad1` (US East) or closest to Supabase region
+* Build command: `npm run build && npx prisma generate`
+* Environment variables: Set ALL required vars in Vercel dashboard (see §15.1)
+* No migrations at build time: Migrations run via GitHub Actions before deploy
+
+**Common Pitfalls (AVOID):**
+* ❌ Using `api/[...path].ts` catch-all routes with Express apps
+* ❌ Trying to mount Express app at `api/index.ts` to handle all routes
+* ❌ Multiple conflicting route handlers (e.g., `api/index.ts` + `api/v1/health.ts`)
+* ❌ Using Prisma in serverless health checks (too heavy, use utility functions)
+* ❌ Forgetting to run `npx prisma generate` in build command
+
+**Correct Pattern:**
+* ✅ One file per endpoint: `api/v1/health.ts`, `api/v1/ready.ts`, etc.
+* ✅ Each file is self-contained with its own imports
+* ✅ Import shared utilities from `/src` directory
+* ✅ Use standard response envelope in every function
+* ✅ Proper error handling in each function
 
 ---
 
