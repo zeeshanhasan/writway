@@ -37,26 +37,32 @@ async function getHandler() {
 
 export default async (req: any, res: any) => {
   try {
-    console.log('Serverless function called:', req.method, req.path);
+    console.log('Serverless function called:', req.method, req.url);
+    console.log('Environment check:', {
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      nodeEnv: process.env.NODE_ENV
+    });
+    
     const serverlessHandler = await getHandler();
     return await serverlessHandler(req, res);
   } catch (error) {
     console.error('Serverless function error:', error);
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        success: false,
-        data: null,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Serverless function failed to execute',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        }
-      })
-    };
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    
+    // Return a proper HTTP response
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
+      success: false,
+      data: null,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Serverless function failed to execute',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+      }
+    }));
   }
 };
 
