@@ -1,46 +1,72 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import { errorHandler } from './middlewares/errorHandler';
+import { requestIdMiddleware } from './middlewares/requestId';
+import { checkDatabaseReady } from './utils/dbHealth';
 
 export const app = express();
 
+// Security & parsing
+app.use(helmet());
 app.use(cors({
-  origin: ["http://localhost:3000", "https://writway.com"],
+  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
   credentials: true,
 }));
 app.use(express.json());
+app.use(requestIdMiddleware);
 
-// basic request logging for debugging on Vercel
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const start = Date.now();
-  console.log(`[req] ${req.method} ${req.url}`);
-  res.on('finish', () => {
-    console.log(`[res] ${req.method} ${req.url} ${res.statusCode} ${Date.now() - start}ms`);
-  });
-  next();
-});
-
-// Liveness: fast, no external calls
+// Health & readiness (lightweight, no auth)
 app.get('/api/v1/health', (_req: Request, res: Response) => {
-  res.json({ success: true, data: { status: 'ok' }, error: null });
+  res.json({ 
+    success: true, 
+    data: { 
+      status: 'ok', 
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    }, 
+    error: null 
+  });
 });
 
-// Readiness: checks DB connectivity with a short timeout (lazy Prisma init)
 app.get('/api/v1/ready', async (_req: Request, res: Response) => {
-  const timeoutMs = 3000;
-  const timeoutPromise = new Promise((_resolve, reject) => {
-    const id = setTimeout(() => {
-      clearTimeout(id);
-      reject(new Error('DB readiness check timed out'));
-    }, timeoutMs);
-  });
-  try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-    await Promise.race([prisma.$queryRaw`SELECT 1`, timeoutPromise]);
-    res.json({ success: true, data: { db: 'connected' }, error: null });
-  } catch (err) {
-    res.status(200).json({ success: true, data: { db: 'disconnected' }, error: null });
+  const dbReady = await checkDatabaseReady();
+  
+  if (!dbReady) {
+    return res.status(503).json({ 
+      success: false, 
+      data: null, 
+      error: { 
+        code: 'DB_UNAVAILABLE', 
+        message: 'Database not ready' 
+      }
+    });
   }
+  
+  res.json({ 
+    success: true, 
+    data: { 
+      db: 'connected',
+      timestamp: new Date().toISOString()
+    }, 
+    error: null 
+  });
 });
+
+// Import routers
+import { router as authRouter } from './routes/auth';
+import { router as tenantRouter } from './routes/tenant';
+import { router as planRouter } from './routes/plan';
+import { router as billingRouter } from './routes/billing';
+import { authMiddleware } from './middlewares/auth';
+
+// Mount versioned API routes
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/tenant', authMiddleware, tenantRouter);
+app.use('/api/v1/plan', planRouter);
+app.use('/api/v1/billing', authMiddleware, billingRouter);
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 export default app;

@@ -1,8 +1,8 @@
-const express = require('express');
-const { z } = require('zod');
-const prisma = require('../config/prisma');
+import { Router, Request, Response } from 'express';
+import { prisma } from '../config/prisma';
+import { z } from 'zod';
 
-const router = express.Router();
+export const router = Router();
 
 // Validation schema for tenant onboarding completion
 const completeOnboardingSchema = z.object({
@@ -17,17 +17,21 @@ const completeOnboardingSchema = z.object({
 });
 
 // Complete tenant onboarding
-router.patch('/:id/complete', async (req, res) => {
+router.patch('/:id/complete', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    const userTenantId = req.user.tenantId;
+    const user = (req as any).user;
+    const userTenantId = user?.tenantId;
 
     // Verify user owns this tenant
     if (id !== userTenantId) {
       return res.status(403).json({
-        error: 'FORBIDDEN',
-        message: 'You can only update your own tenant'
+        success: false,
+        data: null,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You can only update your own tenant'
+        }
       });
     }
 
@@ -72,37 +76,50 @@ router.patch('/:id/complete', async (req, res) => {
           plan: updatedTenant.Plan,
           users: updatedTenant.users
         }
-      }
+      },
+      error: null
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
-        error: 'VALIDATION_ERROR',
-        message: 'Invalid input data',
-        details: error.errors
+        success: false,
+        data: null,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: error.errors
+        }
       });
     }
 
     console.error('Tenant onboarding completion error:', error);
     res.status(500).json({
-      error: 'INTERNAL_ERROR',
-      message: 'An error occurred while completing onboarding'
+      success: false,
+      data: null,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred while completing onboarding'
+      }
     });
   }
 });
 
 // Get tenant details
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    const userTenantId = req.user.tenantId;
+    const user = (req as any).user;
+    const userTenantId = user?.tenantId;
 
     // Verify user owns this tenant
     if (id !== userTenantId) {
       return res.status(403).json({
-        error: 'FORBIDDEN',
-        message: 'You can only access your own tenant'
+        success: false,
+        data: null,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You can only access your own tenant'
+        }
       });
     }
 
@@ -124,8 +141,12 @@ router.get('/:id', async (req, res) => {
 
     if (!tenant) {
       return res.status(404).json({
-        error: 'NOT_FOUND',
-        message: 'Tenant not found'
+        success: false,
+        data: null,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Tenant not found'
+        }
       });
     }
 
@@ -148,29 +169,38 @@ router.get('/:id', async (req, res) => {
           createdAt: tenant.createdAt,
           updatedAt: tenant.updatedAt
         }
-      }
+      },
+      error: null
     });
   } catch (error) {
     console.error('Get tenant error:', error);
     res.status(500).json({
-      error: 'INTERNAL_ERROR',
-      message: 'An error occurred while fetching tenant details'
+      success: false,
+      data: null,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred while fetching tenant details'
+      }
     });
   }
 });
 
 // Update tenant settings
-router.patch('/:id/settings', async (req, res) => {
+router.patch('/:id/settings', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    const userTenantId = req.user.tenantId;
+    const user = (req as any).user;
+    const userTenantId = user?.tenantId;
 
     // Verify user owns this tenant and has admin/owner role
-    if (id !== userTenantId || !['OWNER', 'ADMIN'].includes(req.user.role)) {
+    if (id !== userTenantId || !['OWNER', 'ADMIN'].includes(user?.role)) {
       return res.status(403).json({
-        error: 'FORBIDDEN',
-        message: 'You do not have permission to update tenant settings'
+        success: false,
+        data: null,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You do not have permission to update tenant settings'
+        }
       });
     }
 
@@ -203,23 +233,31 @@ router.patch('/:id/settings', async (req, res) => {
           isOnboardingComplete: updatedTenant.isOnboardingComplete,
           plan: updatedTenant.Plan
         }
-      }
+      },
+      error: null
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
-        error: 'VALIDATION_ERROR',
-        message: 'Invalid input data',
-        details: error.errors
+        success: false,
+        data: null,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: error.errors
+        }
       });
     }
 
     console.error('Update tenant settings error:', error);
     res.status(500).json({
-      error: 'INTERNAL_ERROR',
-      message: 'An error occurred while updating tenant settings'
+      success: false,
+      data: null,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred while updating tenant settings'
+      }
     });
   }
 });
 
-module.exports = router;

@@ -1,27 +1,28 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 async function isAuthenticated(request: NextRequest): Promise<boolean> {
   try {
-    const cookie = request.headers.get('cookie') || '';
-    // Prefer explicit API_URL; fallback to same-origin guess if unset
-    const base = API_URL || `${request.nextUrl.protocol}//${request.nextUrl.host}/api`;
-    const res = await fetch(`${base}/auth/me`, {
+    // Extract token from cookie or Authorization header
+    const token = request.cookies.get('access_token')?.value || 
+                  request.headers.get('authorization')?.replace('Bearer ', '');
+    
+    if (!token) return false;
+
+    const res = await fetch(`${API_URL}/auth/me`, {
       method: 'GET',
       headers: {
-        cookie,
-        // Reflect current request origin
-        origin: `${request.nextUrl.protocol}//${request.nextUrl.host}`,
+        'Authorization': `Bearer ${token}`,
         'content-type': 'application/json',
       },
-      // Ensure no caching in middleware
       cache: 'no-store',
     });
+    
     if (!res.ok) return false;
-    const data = await res.json().catch(() => null);
-    return Boolean(data && data.success);
+    const data = await res.json();
+    return Boolean(data?.success && data?.data);
   } catch {
     return false;
   }

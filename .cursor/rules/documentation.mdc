@@ -1,0 +1,332 @@
+---
+description: Documentation organization and creation rules
+globs:
+alwaysApply: true
+---
+
+# Documentation Organization Rules
+
+## 1) Feature Documentation Location
+
+**MANDATORY**: All feature-related documentation must be created in the `/features/{feature-name}/` directory structure.
+
+### 1.1 Directory Structure
+
+```
+/features
+  /{feature-name}
+    /{feature-name}.md           # Main feature spec/requirements
+    /implementation-*.md          # Implementation tracking
+    /guides/                      # Feature-specific guides
+    /plans/                       # Planning documents
+```
+
+### 1.2 Examples
+
+**Tech Debt Documentation:**
+```
+/features/techDebt/
+  /techdebt-v1.0.md              # Main tracking document
+  /START_HERE.md                  # Quick reference
+  /IMPLEMENTATION_COMPLETE.md     # Completion summary
+  /IMPLEMENTATION_SUMMARY.md      # Final summary
+  /UUID_MIGRATION_PLAN.md         # Migration plan
+```
+
+**Feature Documentation:**
+```
+/features/auth/
+  /feat-auth_onboarding_and_billing.md  # Feature spec
+  /implementation-log.md                 # Progress tracking
+```
+
+### 1.3 Backend-Specific Guides
+
+**Exception**: Technical guides specific to backend setup/deployment belong in `/backend/`:
+
+```
+/backend/
+  /ENV_SETUP_GUIDE.md            # Environment setup
+  /DATABASE_MIGRATION_GUIDE.md   # Database migrations
+  /DEPLOYMENT_CHECKLIST.md       # Deployment steps
+  /README.md                      # API documentation
+```
+
+---
+
+## 2) Documentation Naming Conventions
+
+### 2.1 File Naming
+
+- **Feature specs**: `feat-{feature-name}.md` or `{feature-name}.md`
+- **Implementation tracking**: `{feature-name}-v{version}.md` or `implementation-*.md`
+- **Guides**: `{PURPOSE}_GUIDE.md` (uppercase)
+- **Plans**: `{purpose}-plan.md` or `{PURPOSE}_PLAN.md`
+- **Summary/completion**: `IMPLEMENTATION_COMPLETE.md`, `IMPLEMENTATION_SUMMARY.md`
+- **Quick reference**: `START_HERE.md`
+
+### 2.2 Version Naming
+
+Use semantic versioning for major changes:
+- `techdebt-v1.0.md` - Major version
+- `techdebt-v1.1.md` - Minor update
+- `techdebt-v2.0.md` - Breaking changes
+
+---
+
+## 3) Documentation Content Requirements
+
+### 3.1 Implementation Tracking Documents
+
+Every implementation document must include:
+
+```markdown
+# {Feature Name} - {Version}
+
+**Date Started**: YYYY-MM-DD
+**Date Completed**: YYYY-MM-DD (or "In Progress")
+**Status**: Draft | In Progress | Complete | Cancelled
+
+## Overview
+Brief description of what this implements
+
+## Goals
+- Goal 1
+- Goal 2
+
+## Implementation Checklist
+- [ ] Task 1
+- [ ] Task 2
+
+## Testing
+- [ ] Test 1
+- [ ] Test 2
+
+## Documentation
+- Link to related docs
+- Link to rules updated
+
+## Success Criteria
+- [ ] Criteria 1
+- [ ] Criteria 2
+```
+
+### 3.2 Guide Documents
+
+Every guide must include:
+
+```markdown
+# {Topic} Guide
+
+## Overview
+What this guide covers
+
+## Prerequisites
+What you need before starting
+
+## Step-by-Step Instructions
+Numbered steps with code examples
+
+## Troubleshooting
+Common issues and solutions
+
+## Next Steps
+What to do after completing this guide
+```
+
+---
+
+## 4) Documentation Organization Rules
+
+### 4.1 When to Create New Documentation
+
+Create new documentation when:
+- Starting a new feature implementation
+- Creating a significant technical guide
+- Tracking tech debt resolution
+- Planning a major refactor
+- Documenting a migration
+
+### 4.2 When to Update Existing Documentation
+
+Update existing documentation when:
+- Completing tasks in an implementation
+- Fixing errors in guides
+- Adding troubleshooting steps
+- Updating status or dates
+
+### 4.3 When to Archive Documentation
+
+Archive (don't delete) documentation when:
+- Feature is cancelled
+- Implementation is replaced
+- Guide becomes obsolete
+
+Archive by moving to `/features/{feature-name}/archive/`
+
+---
+
+## 5) Linking and References
+
+### 5.1 Cross-References
+
+Always link related documentation:
+
+```markdown
+## Related Documentation
+- [Backend Rules](/.cursor/rules/backend.mdc)
+- [Database Schema](/.cursor/rules/database.mdc)
+- [Feature Spec](/features/{feature}/feat-{feature}.md)
+```
+
+### 5.2 Rule Updates
+
+When updating rules, reference in implementation docs:
+
+```markdown
+## Rules Updated
+- Updated `backend.mdc` section 1.2 for Supabase requirements
+- Updated `database.mdc` with UUID requirements
+```
+
+---
+
+## 6) Documentation Index
+
+### 6.1 Feature Index
+
+Maintain `/features/README.md` as an index:
+
+```markdown
+# Features Index
+
+## Active Features
+- [Auth Onboarding](/features/auth/) - User authentication and onboarding
+- [Pricing](/features/public/) - Public pricing page
+
+## Tech Debt
+- [Backend Tech Debt v1.0](/features/techDebt/) - TypeScript migration ✅
+
+## Archived
+- [Legacy Feature](/features/archive/legacy-feature/) - Replaced by X
+```
+
+### 6.2 Documentation Log
+
+Each feature folder should have a log:
+
+```markdown
+# Documentation Log
+
+## 2025-10-08
+- Created techdebt-v1.0.md
+- Created implementation guides
+- Status: Complete ✅
+
+## 2025-10-06
+- Started implementation
+- Created initial plan
+```
+
+---
+
+## 7) Best Practices
+
+### 7.1 Always Include
+
+- ✅ Date stamps
+- ✅ Status indicators
+- ✅ Clear next steps
+- ✅ Links to related docs
+- ✅ Success criteria
+- ✅ Troubleshooting sections
+
+### 7.2 Never Include
+
+- ❌ Sensitive credentials
+- ❌ Hardcoded secrets
+- ❌ Personal information
+- ❌ Production database details
+
+### 7.3 Format Standards
+
+- Use markdown formatting
+- Include code blocks with language tags
+- Add emojis for status (✅ ❌ ⏳ 🚀)
+- Use tables for structured data
+- Use checkboxes for task lists
+
+---
+
+## 8) AI Agent Rules for Documentation
+
+When creating documentation as an AI agent:
+
+1. **Always ask** which feature folder to use
+2. **Default** to `/features/{inferred-feature}/` if not specified
+3. **Never create** documentation in project root
+4. **Always create** a summary/index file
+5. **Always link** to related documentation
+6. **Always include** date and status
+7. **Always log** what documentation was created
+
+---
+
+## 9) Examples
+
+### Good Documentation Structure
+
+```
+/features/techDebt/
+  /techdebt-v1.0.md              ✅ Main tracking
+  /START_HERE.md                  ✅ Quick reference
+  /IMPLEMENTATION_SUMMARY.md      ✅ Summary
+  /UUID_MIGRATION_PLAN.md         ✅ Specific plan
+  /documentation-log.md           ✅ Change log
+```
+
+### Bad Documentation Structure
+
+```
+/START_HERE.md                    ❌ Root level
+/IMPLEMENTATION.md                ❌ Root level
+/docs/random-file.md              ❌ Unclear purpose
+```
+
+---
+
+## 10) Documentation Log Template
+
+Every feature folder should maintain a log:
+
+```markdown
+# Documentation Log - {Feature Name}
+
+## Purpose
+Track all documentation changes for this feature
+
+## Log
+
+### 2025-10-08 - Implementation Complete
+- Created: techdebt-v1.0.md
+- Created: START_HERE.md
+- Created: IMPLEMENTATION_SUMMARY.md
+- Created: UUID_MIGRATION_PLAN.md
+- Status: All documentation complete ✅
+
+### 2025-10-06 - Implementation Started
+- Created: Initial plan document
+- Status: In progress ⏳
+```
+
+---
+
+## Enforcement
+
+- AI agents MUST follow these rules when creating documentation
+- Code reviews SHOULD check documentation placement
+- CI/CD MAY lint documentation structure (future)
+
+---
+
+> **Remember**: Good documentation is organized documentation. Keep it in `/features/{feature-name}/`!

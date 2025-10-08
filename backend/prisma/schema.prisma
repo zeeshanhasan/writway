@@ -1,64 +1,74 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_DATABASE_URL")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  googleId      String?   @unique @map("google_id")
-  email         String    @unique
-  name          String
+  id            String         @id @default(cuid())
+  email         String         @unique
+  role          UserRole       @default(OWNER)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  googleId      String?        @unique @map("google_id")
   image         String?
-  role          UserRole  @default(OWNER)
-  tenantId      String    @map("tenant_id")
-  Tenant        Tenant    @relation(fields: [tenantId], references: [id])
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  name          String
+  tenantId      String         @map("tenant_id")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  refreshTokens RefreshToken[]
+  Tenant        Tenant         @relation(fields: [tenantId], references: [id])
 
   @@map("users")
 }
 
 model Tenant {
-  id                   String   @id @default(cuid())
+  id                   String    @id @default(cuid())
   name                 String?
   address              String?
   country              String?
   city                 String?
-  businessType         String?  @map("business_type")
-  practiceAreas        String?  @map("practice_areas")
-  activeClients        Int?     @map("active_clients")
+  businessType         String?   @map("business_type")
+  practiceAreas        String?   @map("practice_areas")
+  activeClients        Int?      @map("active_clients")
   goals                String?
-  planId               String   @map("plan_id")
-  isOnboardingComplete Boolean  @default(false) @map("is_onboarding_complete")
+  planId               String    @map("plan_id")
+  isOnboardingComplete Boolean   @default(false) @map("is_onboarding_complete")
   trialEndsAt          DateTime? @map("trial_ends_at")
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
-  users                User[]
   Plan                 Plan      @relation(fields: [planId], references: [id])
+  users                User[]
 
   @@map("tenants")
 }
 
 model Plan {
-  id            String   @id @default(cuid())
-  name          String   @unique
-  priceMonthly  Float    @map("price_monthly")
-  seatLimit     Int      @map("seat_limit")
-  clientLimit   Int      @map("client_limit")
-  hasTrial      Boolean  @map("has_trial")
-  trialDays     Int?     @map("trial_days")
-  features      Json
-  tenants       Tenant[]
+  id           String   @id @default(cuid())
+  name         String   @unique
+  priceMonthly Float    @map("price_monthly")
+  seatLimit    Int      @map("seat_limit")
+  clientLimit  Int      @map("client_limit")
+  hasTrial     Boolean  @map("has_trial")
+  trialDays    Int?     @map("trial_days")
+  features     Json
+  tenants      Tenant[]
 
   @@map("plans")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique @map("token_hash")
+  userId    String    @map("user_id")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
 }
 
 enum UserRole {

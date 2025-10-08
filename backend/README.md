@@ -12,12 +12,12 @@ This is the backend API for WritWay, a multi-tenant SaaS platform for paralegals
 
 ## Tech Stack
 
-- **Runtime**: Node.js with Express
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: Passport.js with Google OAuth
+- **Runtime**: Node.js with Express (TypeScript)
+- **Database**: PostgreSQL (Supabase) with Prisma ORM
+- **Authentication**: JWT with Google OAuth2
 - **Validation**: Zod schemas
-- **Sessions**: Express-session with Redis (optional)
 - **Testing**: Jest + Supertest
+- **Deployment**: Vercel Serverless Functions
 
 ## Setup
 
@@ -68,26 +68,32 @@ The API will be available at `http://localhost:3001`
 
 ## API Endpoints
 
+All endpoints are mounted under `/api/v1`
+
+### Health & Monitoring
+- `GET /api/v1/health` - Health check (liveness)
+- `GET /api/v1/ready` - Readiness check (database connectivity)
+
 ### Authentication
-- `GET /api/auth/google` - Initiate Google OAuth
-- `GET /api/auth/callback` - OAuth callback handler
-- `POST /api/auth/post-login` - Post-login logic and routing
-- `POST /api/auth/logout` - Logout user
-- `GET /api/auth/me` - Get current user info
+- `GET /api/v1/auth/google` - Initiate Google OAuth
+- `GET /api/v1/auth/callback` - OAuth callback handler
+- `POST /api/v1/auth/logout` - Logout user
+- `GET /api/v1/auth/me` - Get current user info
+- `POST /api/v1/auth/refresh` - Refresh access token
 
 ### Tenant Management
-- `GET /api/tenant/:id` - Get tenant details
-- `PATCH /api/tenant/:id/complete` - Complete onboarding
-- `PATCH /api/tenant/:id/settings` - Update tenant settings
+- `GET /api/v1/tenant/:id` - Get tenant details
+- `PATCH /api/v1/tenant/:id/complete` - Complete onboarding
+- `PATCH /api/v1/tenant/:id/settings` - Update tenant settings
 
 ### Plans
-- `GET /api/plan/list` - Get all available plans
-- `GET /api/plan/:id` - Get plan details
+- `GET /api/v1/plan/list` - Get all available plans
+- `GET /api/v1/plan/:id` - Get plan details
 
 ### Billing
-- `POST /api/billing/upgrade` - Create Stripe checkout session
-- `POST /api/billing/webhook` - Stripe webhook handler
-- `GET /api/billing/info` - Get billing information
+- `POST /api/v1/billing/upgrade` - Create Stripe checkout session
+- `POST /api/v1/billing/webhook` - Stripe webhook handler
+- `GET /api/v1/billing/info` - Get billing information
 
 ## Database Schema
 
@@ -103,6 +109,8 @@ The API will be available at `http://localhost:3001`
 - **Role-based Access**: SUPER_ADMIN, OWNER, ADMIN, USER roles
 - **Onboarding Flow**: `isOnboardingComplete` flag controls dashboard access
 - **Plan Limits**: Seat limits, client limits, and feature flags
+- **JWT Tokens**: Stateless authentication with refresh token rotation
+- **RefreshTokens**: Hashed tokens stored in DB with expiry and revocation
 
 ## User Flow
 
@@ -116,36 +124,90 @@ The API will be available at `http://localhost:3001`
 
 ### Scripts
 
-- `npm run dev` - Start development server with hot reload
-- `npm run start` - Start production server
+- `npm run dev` - Start development server with TypeScript watch mode
+- `npm run build` - Build TypeScript to JavaScript
+- `npm run start` - Start production server (compiled JS)
 - `npm run db:generate` - Generate Prisma client
-- `npm run db:migrate` - Run database migrations
+- `npm run db:migrate:dev` - Run database migrations (development)
+- `npm run db:migrate:deploy` - Deploy migrations (production)
 - `npm run db:seed` - Seed database with default data
 - `npm run db:reset` - Reset database and reseed
-- `npm test` - Run tests
+- `npm test` - Run tests with Jest
+- `npm run typecheck` - Type check without emitting files
 
 ### Project Structure
 
 ```
 backend/
+├── api/                  # Vercel serverless entry points
+│   ├── [...path].ts      # Catch-all handler (wraps Express app)
+│   └── v1/
+│       ├── health.ts     # Dedicated health endpoint
+│       └── ready.ts      # Dedicated ready endpoint
 ├── src/
-│   ├── api/           # Route handlers
-│   ├── config/        # Database and Passport config
-│   ├── middlewares/   # Auth and error handling
-│   └── index.js       # Main server file
+│   ├── routes/           # API route handlers (TypeScript)
+│   │   ├── auth.ts
+│   │   ├── tenant.ts
+│   │   ├── plan.ts
+│   │   └── billing.ts
+│   ├── services/         # Business logic layer
+│   │   └── auth.service.ts
+│   ├── middlewares/      # Express middlewares
+│   │   ├── auth.ts       # JWT verification
+│   │   ├── errorHandler.ts
+│   │   ├── requestId.ts
+│   │   └── rbac.ts
+│   ├── utils/            # Helper functions
+│   │   └── dbHealth.ts
+│   ├── app.ts            # Express app configuration
+│   └── index.ts          # Local server entry point
 ├── prisma/
-│   ├── schema.prisma  # Database schema
-│   └── seed.js        # Database seeding
-└── tests/             # Test files
+│   ├── schema.prisma     # Database schema
+│   ├── seed.ts           # Database seeding
+│   └── migrations/       # Migration files
+├── tests/                # Test files
+│   └── health.test.ts
+├── vercel.json           # Vercel configuration
+├── tsconfig.json         # TypeScript configuration
+└── jest.config.ts        # Jest test configuration
 ```
 
 ## Security
 
 - **Multi-tenant Isolation**: Prisma middleware ensures tenant data separation
-- **JWT Authentication**: Stateless token-based auth
+- **JWT Authentication**: Stateless token-based auth with refresh token rotation
 - **Input Validation**: Zod schemas for all API inputs
 - **CORS Protection**: Configurable origin allowlist
 - **Helmet Security**: Security headers and protections
+- **httpOnly Cookies**: Tokens stored in secure httpOnly cookies
+- **Token Revocation**: Refresh tokens can be revoked on logout
+
+## Response Format
+
+All API responses follow a standard envelope:
+
+**Success:**
+```json
+{
+  "success": true,
+  "data": { ... },
+  "error": null,
+  "meta": { "page": 1, "limit": 20, "total": 100 }
+}
+```
+
+**Error:**
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable message",
+    "details": { ... }
+  }
+}
+```
 
 ## Future Enhancements
 

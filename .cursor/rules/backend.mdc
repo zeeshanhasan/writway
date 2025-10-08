@@ -34,13 +34,32 @@ Authoritative rules for the Node.js API layer used by WritWay. These rules are b
 * **Routing**: All HTTP routes mounted under `/api/v1` within Vercel functions (`/api/*`)
 * **Do not** run migrations at build or request time. See DevOps rules.
 
-### 1.2 Serverless Health & DB Checks (Vercel)
-* Health probes in serverless functions must use a lightweight PG client (`pg`), not Prisma. Prisma engines are heavyweight for cold starts and may fail inside short-lived functions.
-* Use the pooled Supabase connection string for serverless (`...:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require`).
-* Ensure `DATABASE_URL` is set in the Vercel Backend project. Optionally set `DIRECT_DATABASE_URL` for CI migrations only (never used at runtime).
-* Avoid prepared statements in serverless contexts. If Prisma is used elsewhere, set `PRISMA_DISABLE_PREPARED_STATEMENTS=true`.
+### 1.2 Serverless Health & DB Checks (Vercel + Supabase)
+* **Database**: Supabase PostgreSQL exclusively. Always use pooled connection strings for serverless.
+* **Health probes**: Use lightweight `pg` client, NEVER Prisma in serverless health/ready endpoints. Prisma engines are heavyweight for cold starts and may fail inside short-lived functions.
+* **Connection strings**:
+  - `DATABASE_URL`: Pooled via pgBouncer (`:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require`)
+  - `DIRECT_DATABASE_URL`: Direct connection (`:5432`) for migrations in CI ONLY; never at runtime.
+* **Prepared statements**: Set `PRISMA_DISABLE_PREPARED_STATEMENTS=true` in Vercel env vars.
+* **Health endpoint**: Return 200 with `{ success: true, data: {...}, error: null }` on success.
+* **Ready endpoint**: Return 503 with `{ success: false, data: null, error: {...} }` on DB failure.
 * For table listings in health, query `information_schema.tables` and exclude `_prisma_migrations`.
 * Keep logs minimal and never print secrets; log only error messages.
+
+### 1.3 Language & File Standards
+* **TypeScript only**: All files under `/backend/src` and `/backend/api` must be `.ts` or `.tsx`.
+* **No JavaScript**: No `.js` files in source directories. Seed scripts and one-off tools may use JS if documented.
+* **Type safety**: Enable `strict: true` in tsconfig.json. No `any` types except in serverless handler signatures.
+
+### 1.4 Vercel Deployment Configuration
+* **Project setup**: Separate Vercel project for backend at `api.writway.com`.
+* **Required file**: `/backend/vercel.json` with function configuration.
+* **Runtime**: `nodejs20.x` for all functions.
+* **Regions**: Deploy to `iad1` (US East) or closest to Supabase region.
+* **Environment variables**: Set all required vars in Vercel dashboard, including `PRISMA_DISABLE_PREPARED_STATEMENTS=true`.
+* **Build command**: `npm run build` (TypeScript compilation).
+* **Output directory**: Functions from `/backend/api/**/*.ts`.
+* **No migrations at build time**: Migrations run via GitHub Actions before deploy.
 
 ---
 
@@ -80,26 +99,25 @@ Authoritative rules for the Node.js API layer used by WritWay. These rules are b
 * **Idempotency**: `PUT` for updates (full/partial with PATCH allowed), `POST` creates, `DELETE` deletes. For mutation endpoints that may be retried by clients, accept header `Idempotency-Key` and de‑duplicate server‑side.
 * **No duplicate APIs**: prefer capability via query params, not new near-duplicate routes. New routes must be reviewed against existing ones.
 
-### 3.1 Standard Response Envelope
+### 3.1 Standard Response Envelope (MANDATORY)
 
+ALL responses must use this exact structure:
+
+**Success:**
 ```json
-{
-  "success": true,
-  "data": {},
-  "error": null,
-  "meta": { "page": 1, "limit": 20, "total": 100 }
-}
+{ "success": true, "data": { ... }, "error": null, "meta": { ... } }
 ```
 
-**Errors**
-
+**Error:**
 ```json
-{
-  "success": false,
-  "error": { "code": "VALIDATION_ERROR", "message": "Email is required", "details": {"field": "email"} }
-}
+{ "success": false, "data": null, "error": { "code": "ERROR_CODE", "message": "Human readable", "details": {...} } }
 ```
 
+* The `meta` field is optional and used for pagination.
+* NEVER return success without the envelope.
+* NEVER return errors outside this envelope.
+* HTTP status codes: 2xx for success, 4xx for client errors, 5xx for server errors.
+* Envelope structure still uses `success: true/false` regardless of HTTP status.
 * **Error codes registry** lives in `/src/utils/errors.ts` and must be reused.
 
 ### 3.2 Pagination & Sorting
@@ -117,15 +135,14 @@ Authoritative rules for the Node.js API layer used by WritWay. These rules are b
 
 ## 4) Authentication & Authorization
 
-* **Auth**: Google OAuth2 login handled by frontend → backend issues short‑lived JWT + refresh token pair.
-* **RBAC**: Middleware enforces tenant‑scoped roles:
-
-  * `SUPER_ADMIN` (platform‑wide)
-  * `ORG_ADMIN` (tenant admin)
-  * `STAFF` / `USER` (scoped permissions)
-* **Tenant isolation**: all DB queries must be scoped by `tenant_id` via Prisma middleware.
-* **Session storage**: stateless JWT; refresh token rotation required; revoke on logout/device removal.
-* **Cookies/Headers**: If cookies are used, set `domain=.writway.com`, `Secure`, `HttpOnly`, `SameSite=None`.
+* **Auth Flow**: Google OAuth2 → backend issues JWT access token + refresh token.
+* **Stateless only**: No express-session, no server-side sessions. JWT verification on every request.
+* **Token storage**: Frontend stores tokens in httpOnly cookies or localStorage (document which).
+* **Refresh tokens**: Rotate on refresh; store hashed in DB with expiry. Revoke on logout.
+* **JWT claims**: Include `{ userId, tenantId, role, iat, exp }`.
+* **RBAC**: Middleware enforces roles: `SUPER_ADMIN`, `OWNER`, `ADMIN`, `USER`.
+* **Tenant isolation**: All DB queries auto-scoped by `tenant_id` via Prisma middleware.
+* **Cookie config** (if used): `domain=.writway.com`, `Secure`, `HttpOnly`, `SameSite=Lax`.
 
 ---
 
@@ -152,11 +169,16 @@ Authoritative rules for the Node.js API layer used by WritWay. These rules are b
 
 ---
 
-## 7) Database Access (summary; see `database.mdc` for full rules)
+## 7) Database Access & Schema Rules
 
-* **Prisma only** in repositories; no raw SQL unless justified and reviewed.
-* **UUID** primary keys, `snake_case` columns, plural table names.
-* **Multi‑tenancy**: mandatory `tenant_id` on isolated tables. Prisma middleware auto‑injects where clause.
+* **ORM**: Prisma only in repositories; no raw SQL unless justified and reviewed.
+* **Database**: Supabase PostgreSQL with pgBouncer pooling.
+* **Primary keys**: DB-generated UUIDs using `@db.Uuid @default(dbgenerated("gen_random_uuid()"))`.
+* **No cuid()**: Never use `@default(cuid())` or `@default(uuid())`. Always DB-generated.
+* **Column naming**: `snake_case` for all columns; `tenant_id`, `user_id`, etc.
+* **Table naming**: Plural `snake_case` (e.g., `users`, `tenants`, `plans`).
+* **Multi‑tenancy**: mandatory `tenant_id` on isolated tables. Prisma middleware MUST inject `tenant_id` filter on all tenant-scoped queries.
+* **Timestamps**: Every table has `created_at` and `updated_at` (Prisma `@default(now())` and `@updatedAt`).
 * **Transactions**: wrap related writes in `prisma.$transaction`.
 * **Migrations**: exclusively via `prisma migrate` in CI/CD (GitHub Actions). Never in Vercel build or at request time.
 * **Connections**: Use Supabase pooled connections (pgBouncer) or Prisma Accelerate for serverless.
@@ -250,6 +272,22 @@ Pipeline:
 * **Docs**: `/api/docs` (Swagger UI) in non‑prod; publish OpenAPI JSON in all envs.
 * **API Explorer**: optional lightweight explorer for authenticated users in staging.
 * **Postman**: maintained collection synced with OpenAPI.
+
+### 15.1 Environment Variables & Configuration
+
+* **Required file**: `/backend/.env.example` with ALL required variables documented.
+* **Validation**: Load and validate env vars on startup; fail fast if missing critical vars.
+* **Required vars**:
+  - `NODE_ENV` (development|staging|production)
+  - `DATABASE_URL` (pooled Supabase connection)
+  - `DIRECT_DATABASE_URL` (for CI migrations only)
+  - `JWT_SECRET` (strong random string)
+  - `JWT_REFRESH_SECRET` (separate secret for refresh tokens)
+  - `CORS_ORIGIN` (comma-separated allowed origins)
+  - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`
+  - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+  - `PRISMA_DISABLE_PREPARED_STATEMENTS=true` (for Vercel serverless)
+* **Secrets**: Never log or expose in responses. Use env vars or secret manager.
 
 ---
 

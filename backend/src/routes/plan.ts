@@ -1,10 +1,10 @@
-const express = require('express');
-const prisma = require('../config/prisma');
+import { Router, Request, Response } from 'express';
+import { prisma } from '../config/prisma';
 
-const router = express.Router();
+export const router = Router();
 
 // Get all available plans
-router.get('/list', async (req, res) => {
+router.get('/list', async (_req: Request, res: Response) => {
   try {
     const plans = await prisma.plan.findMany({
       orderBy: { priceMonthly: 'asc' }
@@ -23,19 +23,24 @@ router.get('/list', async (req, res) => {
           trialDays: plan.trialDays,
           features: plan.features
         }))
-      }
+      },
+      error: null
     });
   } catch (error) {
     console.error('Get plans error:', error);
     res.status(500).json({
-      error: 'INTERNAL_ERROR',
-      message: 'An error occurred while fetching plans'
+      success: false,
+      data: null,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred while fetching plans'
+      }
     });
   }
 });
 
 // Get plan by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -45,8 +50,12 @@ router.get('/:id', async (req, res) => {
 
     if (!plan) {
       return res.status(404).json({
-        error: 'NOT_FOUND',
-        message: 'Plan not found'
+        success: false,
+        data: null,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Plan not found'
+        }
       });
     }
 
@@ -63,15 +72,19 @@ router.get('/:id', async (req, res) => {
           trialDays: plan.trialDays,
           features: plan.features
         }
-      }
+      },
+      error: null
     });
   } catch (error) {
     console.error('Get plan error:', error);
     res.status(500).json({
-      error: 'INTERNAL_ERROR',
-      message: 'An error occurred while fetching plan'
+      success: false,
+      data: null,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'An error occurred while fetching plan'
+      }
     });
   }
 });
 
-module.exports = router;

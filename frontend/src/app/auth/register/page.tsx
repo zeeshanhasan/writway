@@ -3,7 +3,7 @@
 export default function AuthPage() {
   const handleGoogleAuth = () => {
     // Redirect to backend Google OAuth endpoint
-    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
     window.location.href = `${base}/auth/google`;
   };
 
