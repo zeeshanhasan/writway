@@ -14,6 +14,34 @@ export type ApiEnvelope<T = unknown> = {
   meta?: unknown;
 };
 
+// User and tenant type definitions
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  image: string | null;
+  role: string;
+}
+
+export interface Tenant {
+  id: string;
+  name: string | null;
+  address: string | null;
+  country: string | null;
+  city: string | null;
+  businessType: string | null;
+  practiceAreas: string | null;
+  activeClients: number | null;
+  goals: string | null;
+  isOnboardingComplete: boolean;
+  plan: unknown;
+}
+
+export interface CurrentUserData {
+  user: User;
+  tenant: Tenant;
+}
+
 class ApiClient {
   private baseURL: string;
 
@@ -23,13 +51,11 @@ class ApiClient {
 
   async request<T = Json>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    const token = this.getToken();
 
     const config: RequestInit = {
-      credentials: 'include',
+      credentials: 'include', // This ensures cookies are sent with the request
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers || {}),
       },
       ...options,
@@ -41,7 +67,7 @@ class ApiClient {
 
       if (!response.ok) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const message = (data as any)?.message || 'Request failed';
+        const message = (data as any)?.error?.message || (data as any)?.message || 'Request failed';
         throw new Error(message);
       }
 
@@ -54,32 +80,29 @@ class ApiClient {
   }
 
   getToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return window.localStorage.getItem('auth_token');
-    }
+    // Tokens are stored in httpOnly cookies, not localStorage
+    // The backend will automatically read them from cookies
     return null;
   }
 
   setToken(token: string): void {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('auth_token', token);
-    }
+    // Tokens are managed by backend via httpOnly cookies
+    // No need to store in localStorage
   }
 
   removeToken(): void {
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('auth_token');
-    }
+    // Tokens are managed by backend via httpOnly cookies
+    // No need to remove from localStorage
   }
 
   // Auth endpoints
-  async getCurrentUser(): Promise<ApiEnvelope<{ user: unknown; tenant: unknown }>> {
-    return this.request<ApiEnvelope<{ user: unknown; tenant: unknown }>>('/auth/me');
+  async getCurrentUser(): Promise<ApiEnvelope<CurrentUserData>> {
+    return this.request<ApiEnvelope<CurrentUserData>>('/auth/me');
   }
 
   async logout(): Promise<ApiEnvelope<unknown>> {
     const result = await this.request<ApiEnvelope<unknown>>('/auth/logout', { method: 'POST' });
-    this.removeToken();
+    // Backend handles token removal via cookie clearing
     return result;
   }
 

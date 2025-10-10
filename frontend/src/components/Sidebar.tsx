@@ -1,18 +1,36 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { dashboardNavItems } from '@/config/navigation';
+import { cn } from '@/lib/utils';
+
 export function Sidebar() {
+  const pathname = usePathname();
+
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <div className="brand">
-          <a href="/dashboard">WRITWAY</a>
-        </div>
-      </div>
-      <nav className="flex-1 p-4 space-y-2">
-        <a href="/dashboard" className="flex items-center px-3 py-2 text-[var(--color-primary)] bg-[var(--color-accent)] bg-opacity-10 rounded-[12px] font-medium">Dashboard</a>
-        <a href="/dashboard/clients" className="flex items-center px-3 py-2 text-[var(--color-neutral-mid)] hover:text-[var(--color-primary)] hover:bg-gray-50 rounded-[12px] transition-colors">Clients</a>
-        <a href="/dashboard/cases" className="flex items-center px-3 py-2 text-[var(--color-neutral-mid)] hover:text-[var(--color-primary)] hover:bg-gray-50 rounded-[12px] transition-colors">Cases</a>
-        <a href="/dashboard/workflows" className="flex items-center px-3 py-2 text-[var(--color-neutral-mid)] hover:text-[var(--color-primary)] hover:bg-gray-50 rounded-[12px] transition-colors">Workflows</a>
-        <a href="/dashboard/tasks" className="flex items-center px-3 py-2 text-[var(--color-neutral-mid)] hover:text-[var(--color-primary)] hover:bg-gray-50 rounded-[12px] transition-colors">Tasks</a>
-        <a href="/dashboard/settings" className="flex items-center px-3 py-2 text-[var(--color-neutral-mid)] hover:text-[var(--color-primary)] hover:bg-gray-50 rounded-[12px] transition-colors">Settings</a>
+    <aside className="hidden lg:flex w-60 bg-transparent border-r border-border flex-col">
+      <nav className="flex-1 p-4 space-y-1">
+        {dashboardNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors',
+                isActive
+                  ? 'text-primary bg-accent/10'
+                  : 'text-primary hover:text-primary hover:bg-accent/5'
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span>{item.title}</span>
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );

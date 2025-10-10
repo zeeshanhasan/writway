@@ -1,19 +1,9 @@
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-white rounded-[12px] shadow-card p-8">
-        <h1 className="text-2xl font-semibold text-[var(--color-primary)] mb-2">
-          Welcome back, John!
-        </h1>
-        <p className="text-[var(--color-neutral-mid)]">
-          Here's what's happening with your AI paralegal assistants today.
-        </p>
-      </div>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-[12px] shadow-card p-6">
+        <div className="bg-white rounded-[12px] p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--color-neutral-mid)]">Active Clients</p>
@@ -27,7 +17,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[12px] shadow-card p-6">
+        <div className="bg-white rounded-[12px] p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--color-neutral-mid)]">Open Cases</p>
@@ -41,7 +31,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[12px] shadow-card p-6">
+        <div className="bg-white rounded-[12px] p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--color-neutral-mid)]">Tasks Completed</p>
@@ -55,7 +45,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[12px] shadow-card p-6">
+        <div className="bg-white rounded-[12px] p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--color-neutral-mid)]">AI Agents Active</p>
@@ -72,7 +62,7 @@ export default function DashboardPage() {
 
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-[12px] shadow-card p-6">
+        <div className="bg-white rounded-[12px] p-6">
           <h2 className="text-lg font-semibold text-[var(--color-primary)] mb-4">
             Recent Activity
           </h2>
@@ -99,7 +89,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[12px] shadow-card p-6">
+        <div className="bg-white rounded-[12px] p-6">
           <h2 className="text-lg font-semibold text-[var(--color-primary)] mb-4">
             Quick Actions
           </h2>

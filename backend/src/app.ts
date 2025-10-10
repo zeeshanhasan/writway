@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { errorHandler } from './middlewares/errorHandler';
 import { requestIdMiddleware } from './middlewares/requestId';
 import { checkDatabaseReady } from './utils/dbHealth';
@@ -14,6 +15,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(requestIdMiddleware);
 
 // Health & readiness (lightweight, no auth)

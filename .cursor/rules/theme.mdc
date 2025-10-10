@@ -4,66 +4,347 @@ alwaysApply: true
 # Theme Rules (theme.mdc)
 
 ## Overview
-This file defines the design tokens (colors, typography, spacing, radii) for WritWay.
+This file defines the complete design system for WritWay: colors, typography, spacing, components, and responsive behavior.
 All frontend development must use these tokens to ensure consistent branding.
 
 ---
 
 ## Colors
 
-- **Primary:** `#1A1A1A` (Charcoal)
+### Brand Colors
+- **Primary (text/main):** `#1A1A1A` (Charcoal)
 - **Background:** `#F5F1EB` (Warm Beige)
-- **Accent (Brand):** `#FF6B35` (Orange/Coral)
+- **Accent (Brand):** `#1A1A1A` (Charcoal)
 - **Secondary Accent:** `#2563EB` (Muted Blue)
-- **Success:** `#22C55E` (Green)
-- **Error:** `#DC2626` (Red)
-- **Neutral Light:** `#F9FAFB`
-- **Neutral Mid:** `#6B7280`
-- **Neutral Dark:** `#111827`
+
+### State Colors
+- **Success:** `#B4CBC3` (Green)
+- **Error:** `#FF6B35` (Red)
+- **Warning:** `#C4C3D5` (Amber)
+- **Info:** `#5F92C3` (Sky Blue)
+
+### Neutral Scale
+- **Neutral Light:** `#F5F5F5 ` (Soft Gray)
+- **Neutral Mid:** `#7A7A7A` (Ash Gray)
+- **Neutral Dark:** `#1A1A1A` (Charcoal)
+
+
+### Component-Specific
+- **Surface/Card Background:** `#FFFFFF`
+- **Border:** `#D9D6D0`
+- **Input Background:** `#FAF9F7`
+- **Muted Text:** `#7C7B77`
+- **Foreground (text on surfaces):** `#1A1A1A`
+
+
+### Interaction States
+- **Focus Ring:** `#FF6B35` with 40% opacity
+- **Hover Overlay:** `rgba(0, 0, 0, 0.04)`
+- **Active Overlay:** `rgba(0, 0, 0, 0.08)`
+- **Disabled Opacity:** `0.5`
+
+### Dark Mode (Optional)
+- **Background:** `#1A1A1A`
+- **Surface:** `#262626`
+- **Text:** `#F5F1EB`
+- **Border:** `#2F2F2F`
+- **Accent:** `#F5F1EB` (keep same)
+- **Neutral Scale:** `#1A1A1A` to `#C4C4C4`
 
 ---
 
 ## Typography
 
-- **Font Family:** "Inter", "Helvetica Neue", Arial, sans-serif
-- **Font Weights:**
-  - Regular: 400
-  - Medium: 500
-  - Bold: 600
-- **Scale (rem):**
-  - h1: 2.25rem
-  - h2: 1.875rem
-  - h3: 1.5rem
-  - body: 1rem
-  - small: 0.875rem
+### Font Family
+- **Primary:** "Inter", "Helvetica Neue", Arial, sans-serif
+- **Mono (code/numbers):** "JetBrains Mono", "Fira Code", monospace (optional)
+
+### Font Weights
+- **Regular:** 400
+- **Medium:** 500
+- **Semibold:** 600
+- **Bold:** 700
+
+### Type Scale (Desktop)
+- **h1:** 2.25rem (36px) - line-height: 1.2, letter-spacing: -0.02em, weight: 600
+- **h2:** 1.875rem (30px) - line-height: 1.3, letter-spacing: -0.01em, weight: 600
+- **h3:** 1.5rem (24px) - line-height: 1.4, letter-spacing: 0, weight: 600
+- **h4:** 1.25rem (20px) - line-height: 1.4, letter-spacing: 0, weight: 600
+- **body:** 1rem (16px) - line-height: 1.5, letter-spacing: 0, weight: 400
+- **small:** 0.875rem (14px) - line-height: 1.4, letter-spacing: 0, weight: 400
+- **xs:** 0.75rem (12px) - line-height: 1.3, letter-spacing: 0, weight: 400
+
+### Type Scale (Mobile - responsive)
+- **h1:** 2rem (32px)
+- **h2:** 1.5rem (24px)
+- **h3:** 1.25rem (20px)
+- **h4:** 1.125rem (18px)
+- **body:** 1rem (16px) - can use 0.875rem if needed
+- **small:** 0.875rem (14px)
 
 ---
 
 ## Layout & Spacing
 
-- **Border Radius:** 12px (rounded but professional)
-- **Card Shadow:** subtle, use `0 2px 6px rgba(0,0,0,0.08)`
-- **Container Widths:**
-  - Max content width: 1280px
-  - Gutter: 16px
+### Border Radius
+- **sm:** 8px (tags, badges, small elements)
+- **DEFAULT:** 12px (buttons, inputs, cards)
+- **lg:** 16px (large cards, modals)
+- **xl:** 20px (hero sections, large containers)
+- **full:** 9999px (pills, avatars)
+
+### Shadows
+- **sm:** `0 1px 2px rgba(0,0,0,0.05)`
+- **DEFAULT (card):** `0 2px 6px rgba(0,0,0,0.08)`
+- **md:** `0 4px 12px rgba(0,0,0,0.10)`
+- **lg (popover):** `0 6px 24px rgba(0,0,0,0.12)`
+- **xl (modal):** `0 10px 40px rgba(0,0,0,0.18)`
+- **inner:** `inset 0 2px 4px rgba(0,0,0,0.06)` (for pressed states)
+
+### Spacing Scale
+- Use Tailwind's default 4px-based scale (0.5 = 2px, 1 = 4px, 2 = 8px, etc.)
+- Custom additions:
+  - **section-mobile:** 40px (10)
+  - **section-tablet:** 60px (15)
+  - **section-desktop:** 80px (20)
+
+### Container
+- **Max Width:** 1280px
+- **Padding (gutter):**
+  - Mobile (< md): 16px
+  - Tablet (md): 20px
+  - Desktop (lg+): 24px
+- **Centered:** Yes, by default
+
+### Z-Index Layers
+- **dropdown:** 50
+- **sticky:** 100
+- **overlay:** 500
+- **modal-backdrop:** 900
+- **modal:** 1000
+- **toast:** 1100
+- **tooltip:** 1200
 
 ---
 
-## Dark Mode (Optional)
+## Components
 
-- **Background:** `#0C0C0D`
-- **Text:** `#F5F1EB`
-- **Accent:** `#FF6B35`
-- **Neutral:** Shades of gray from `#1F2937` to `#9CA3AF`
+### Buttons
+- **Variants:**
+  - **Primary:** bg: `accent`, text: `#FFFFFF`, hover: darken 10%
+  - **Secondary:** bg: `secondary-accent`, text: `#FFFFFF`, hover: darken 10%
+  - **Ghost:** bg: transparent, text: `primary`, hover: `hover-overlay`
+  - **Destructive:** bg: `error`, text: `#FFFFFF`, hover: darken 10%
+  - **Outline:** border: `border`, text: `primary`, hover: `hover-overlay`
+
+- **Sizes:**
+  - **sm:** padding: 8px 12px, height: 32px, text: 0.875rem
+  - **DEFAULT:** padding: 12px 18px, height: 40px, text: 1rem
+  - **lg:** padding: 14px 24px, height: 48px, text: 1rem
+
+- **Mobile:** Use `lg` size by default (44px min touch target)
+
+### Inputs/Forms
+- **Background:** `#FFFFFF`
+- **Border:** `border` color, 1px solid
+- **Focus:** border → `accent`, add focus ring (2px offset)
+- **Error:** border → `error`, show error message below in `error` color
+- **Disabled:** opacity `0.5`, cursor not-allowed
+- **Padding:** 10px 12px
+- **Height:** 40px (desktop), 44px (mobile)
+- **Border radius:** `DEFAULT` (12px)
+
+### Cards
+- **Background:** `#FFFFFF`
+- **Border:** 1px solid `border` (optional)
+- **Shadow:** `card` shadow
+- **Border radius:** `DEFAULT` (12px)
+- **Padding:**
+  - **sm:** 16px
+  - **DEFAULT:** 24px
+  - **lg:** 32px
+
+### Modals/Dialogs
+- **Backdrop:** `rgba(0, 0, 0, 0.5)`
+- **Background:** `#FFFFFF`
+- **Shadow:** `xl` shadow
+- **Border radius:** `lg` (16px)
+- **Max Width:**
+  - **sm:** 400px
+  - **DEFAULT:** 500px
+  - **lg:** 700px
+  - **xl:** 900px
+- **Mobile:** Full-screen or slide-up sheet
+
+### Dropdowns/Popovers
+- **Background:** `#FFFFFF`
+- **Border:** 1px solid `border`
+- **Shadow:** `lg` shadow
+- **Border radius:** `DEFAULT` (12px)
+- **Padding:** 8px
+- **Max height:** 300px (scrollable)
+
+---
+
+## Icons
+
+### Library
+- **Primary:** lucide-react (line-style icons only)
+- **Style:** Outline/stroke (no filled icons unless specified)
+
+### Sizes
+- **xs:** 14px (0.875rem)
+- **sm:** 16px (1rem)
+- **DEFAULT:** 20px (1.25rem)
+- **lg:** 24px (1.5rem)
+- **xl:** 32px (2rem)
+
+### Stroke Width
+- **DEFAULT:** 2px (consistent across all icons)
+- **Thin (optional):** 1.5px for large icons
+
+### Color
+- Inherits from parent text color by default
+- Can be overridden with Tailwind text utilities
+
+---
+
+## Animation & Transitions
+
+### Duration
+- **fast:** 150ms (hover states, ripples)
+- **DEFAULT:** 200ms (most UI transitions)
+- **slow:** 300ms (modals, drawers, page transitions)
+
+### Easing
+- **DEFAULT:** ease-in-out
+- **enter:** ease-out (appearing elements)
+- **exit:** ease-in (disappearing elements)
+- **bounce (optional):** cubic-bezier(0.68, -0.55, 0.265, 1.55)
+
+### Common Patterns
+- **Button hover:** `background-color 150ms ease-in-out`
+- **Modal enter:** `opacity 200ms ease-out, scale 200ms ease-out`
+- **Dropdown:** `opacity 150ms ease-out, translateY 150ms ease-out`
+- **Fade in:** `opacity 200ms ease-out`
+- **Slide up:** `transform 250ms ease-out, opacity 200ms ease-out`
+
+---
+
+## Responsive Design
+
+### Breakpoints
+- **sm:** 640px (phones landscape, small tablets)
+- **md:** 768px (tablets)
+- **lg:** 1024px (small desktops)
+- **xl:** 1280px (desktops)
+- **2xl:** 1536px (large desktops)
+
+### Mobile-First Approach
+- Design for mobile first (320px min), scale up
+- All components functional on touch devices
+- Minimum tap target: 44px × 44px
+
+### Responsive Spacing
+- **Container gutter:**
+  - Mobile: 16px
+  - Tablet (md): 20px
+  - Desktop (lg+): 24px
+
+- **Section padding (vertical):**
+  - Mobile: 40px
+  - Tablet (md): 60px
+  - Desktop (lg+): 80px
+
+- **Grid/stack gaps:**
+  - Mobile: 16px
+  - Desktop: 24px
+
+### Responsive Components
+
+#### Navigation
+- **Mobile (< lg):**
+  - Hamburger menu or bottom nav
+  - Drawer/sheet for menu
+  - Full-width dropdowns
+
+- **Desktop (lg+):**
+  - Fixed sidebar (240px) or top nav
+  - Dropdown menus
+  - Persistent navigation
+
+#### Layout Grids
+- **Mobile:** 1 column
+- **Tablet (md):** 2 columns
+- **Desktop (lg):** 3-4 columns
+
+#### Forms
+- **Mobile:** Full-width inputs, stacked labels
+- **Desktop:** Max 600px width, inline labels allowed
+
+#### Tables
+- **Mobile:** Horizontal scroll OR card layout
+- **Desktop:** Standard table with sticky header
+
+#### Modals
+- **Mobile:** Full-screen or bottom sheet
+- **Desktop:** Centered overlay, max-width applies
+
+### Responsive Utilities (Common Patterns)
+
+hidden md:block → show only desktop
+block md:hidden → show only mobile
+flex-col md:flex-row → stack mobile, row desktop
+text-center md:text-left → center mobile, left desktop
+
+
+---
+
+## Performance & Accessibility
+
+### Performance Targets
+- **Lighthouse Score:** ≥ 90 (all categories)
+- **First Contentful Paint:** < 1.5s
+- **Time to Interactive:** < 3.5s
+- **Cumulative Layout Shift:** < 0.1
+
+### Accessibility (WCAG 2.1 AA)
+- **Color contrast:** ≥ 4.5:1 (normal text), ≥ 3:1 (large text)
+- **Focus indicators:** Visible 2px focus ring on all interactive elements
+- **Keyboard navigation:** All actions accessible via keyboard
+- **Touch targets:** ≥ 44px × 44px on mobile
+- **Semantic HTML:** Proper heading hierarchy, landmarks
+- **Screen reader:** Meaningful alt text, ARIA labels where needed
 
 ---
 
 ## Rules
 
-1. All components must use tokens defined here (no hardcoded colors, fonts, or shadows).
-2. Primary actions (buttons, highlights) use **Accent (Orange/Coral)**.
-3. Secondary actions or highlights may use **Muted Blue**.
-4. Backgrounds default to **Warm Beige** in light mode, **Charcoal** in dark mode.
-5. Typography scale must follow the defined system.
+1. **All components must use tokens defined here** - no hardcoded values
+2. **Primary actions** use Accent (Orange/Coral)
+3. **Secondary actions** use Secondary Accent (Muted Blue)
+4. **Destructive actions** use Error (Red)
+5. **Success feedback** uses Success (Green)
+6. **Mobile-first** - design for 375px width minimum, scale up
+7. **Touch-friendly** - minimum 44px tap targets on mobile
+8. **Consistent spacing** - use Tailwind scale, no arbitrary values
+9. **Icons from lucide-react only** - no mixing icon libraries
+10. **Transitions** - add to all interactive elements (buttons, hover states)
+
+---
+
+## Responsive Design Checklist
+
+Every component/page must:
+- [ ] Work on mobile (375px minimum width)
+- [ ] Touch targets ≥ 44px on mobile
+- [ ] Text readable without zooming
+- [ ] Forms usable with mobile keyboard
+- [ ] Navigation accessible (hamburger/drawer or bottom nav)
+- [ ] Images scale appropriately (use next/image)
+- [ ] No horizontal scroll (unless intentional)
+- [ ] Loading states for slow connections
+- [ ] Tested on real devices (iOS Safari, Android Chrome)
+- [ ] WCAG 2.1 AA compliant (contrast, focus, keyboard)
 
 ---

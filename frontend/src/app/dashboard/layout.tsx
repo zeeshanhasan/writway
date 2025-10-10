@@ -1,5 +1,9 @@
 import { Sidebar } from '@/components/Sidebar';
 import { UserMenu } from '@/components/UserMenu';
+import { MobileNav } from '@/components/MobileNav';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Bell, Search } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -7,47 +11,47 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[var(--color-background)] flex flex-col">
-      {/* Full-width Charcoal Header */}
-      <div className="px-6 py-4" style={{ backgroundColor: '#1A1A1A', color: '#F5F1EB' }}>
-        <div className="flex items-center justify-between">
-          {/* Left: Logo */}
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="bg-primary text-primary-foreground px-4 lg:px-6 py-4 border-b border-border/10">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: Mobile menu + Logo */}
           <div className="flex items-center gap-3">
-            <a href="/dashboard" className="text-base font-semibold" style={{ cursor: 'pointer' }}>WRITWAY</a>
+            <MobileNav />
+            <a href="/dashboard" className="brand-header hidden lg:block">
+              WRITWAY
+            </a>
           </div>
-          {/* Center: Search */}
-          <div className="flex-1 px-6">
-            <div className="max-w-xl mx-auto">
-              <input
+          
+          {/* Center: Search (hidden on mobile) */}
+          <div className="hidden md:flex flex-1 px-6">
+            <div className="max-w-xl mx-auto w-full relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
                 type="text"
                 placeholder="Search..."
-                className="w-full px-3 py-2 rounded-[12px] text-sm"
-                style={{ color: '#1A1A1A' }}
+                className="w-full pl-9 bg-card/10 border-border/20 text-foreground placeholder:text-muted-foreground/60"
               />
             </div>
           </div>
+          
           {/* Right: Notifications + UserMenu */}
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-[12px] hover:bg-[rgba(255,255,255,0.08)] transition-colors" aria-label="Notifications" style={{ cursor: 'pointer' }}>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4.5 19.5L9 15l4.5 4.5" />
-              </svg>
-            </button>
+            <Button variant="ghost" size="icon" className="hover:bg-accent/10">
+              <Bell className="h-5 w-5" />
+              <span className="sr-only">Notifications</span>
+            </Button>
             <UserMenu />
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Body container with top radius; Sidebar inside container */}
-      <div className="flex-1 px-6 pb-6 rounded-t-[16px] overflow-hidden">
-        <div className="bg-white shadow-card">
-          <div className="flex">
-            <Sidebar />
-            <section className="flex-1 p-6 bg-[var(--color-background)]">
-              {children}
-            </section>
-          </div>
-        </div>
+      {/* Main container */}
+      <div className="flex-1 flex overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 overflow-auto p-4 lg:p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

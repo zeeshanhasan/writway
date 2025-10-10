@@ -1,44 +1,44 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { apiClient } from '@/lib/api';
-
-interface CurrentUserResponse {
-  success: boolean;
-  data?: {
-    user?: { id: string; name: string; email: string };
-  };
-}
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { apiClient, User } from '@/lib/api';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown, LogOut } from 'lucide-react';
+import { userMenuItems } from '@/config/navigation';
 
 export function UserMenu() {
-  const [open, setOpen] = useState(false);
-  const [displayName, setDisplayName] = useState<string>('User');
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [user, setUser] = useState<{ name: string; image: string | null; email: string }>({
+    name: 'User',
+    image: null,
+    email: ''
+  });
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await apiClient.getCurrentUser();
-        const payload = res as unknown as CurrentUserResponse;
-        const name = payload?.data?.user?.name;
-        if (name) setDisplayName(name);
-      } catch {
-        // ignore, keep default label
+        const payload = await apiClient.getCurrentUser();
+        if (payload.success && payload.data?.user) {
+          setUser({
+            name: payload.data.user.name,
+            image: payload.data.user.image,
+            email: payload.data.user.email
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+        // ignore, keep default values
       }
     };
     fetchUser();
   }, []);
-
-  useEffect(() => {
-    const onClickOutside = (e: MouseEvent) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    if (open) document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [open]);
 
   const handleSignOut = async () => {
     try {
@@ -47,36 +47,38 @@ export function UserMenu() {
         credentials: 'include',
       });
     } finally {
-      window.location.href = '/auth/login';
+      router.push('/auth/login');
     }
   };
 
   return (
-    <div className="relative" ref={menuRef}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 px-3 py-2 rounded-[12px] hover:bg-[rgba(255,255,255,0.08)] transition-colors"
-        style={{ cursor: 'pointer' }}
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        <span className="text-sm font-medium">{displayName}</span>
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 mt-2 w-44 bg-white text-[var(--color-primary)] rounded-[12px] shadow-card py-1 z-50"
-        >
-          <a href="/dashboard/settings" className="block px-3 py-2 text-sm hover:bg-gray-50" role="menuitem">Settings</a>
-          <a href="/dashboard/billing" className="block px-3 py-2 text-sm hover:bg-gray-50" role="menuitem">Plans</a>
-          <button onClick={handleSignOut} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50" role="menuitem">Sign Out</button>
+    <DropdownMenu>
+      <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent/10 transition-colors outline-none">
+        {user.image ? (
+          <img 
+            src={user.image} 
+            alt={user.name} 
+            className="w-8 h-8 rounded-full object-cover" 
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <ChevronDown className="h-4 w-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 border-gray-200 p-2">
+        <div className="px-2 py-1.5">
+          <p className="text-sm font-medium">{user.name}</p>
+          <p className="text-xs text-muted-foreground">{user.email}</p>
         </div>
-      )}
-    </div>
+        <DropdownMenuSeparator className="my-2 bg-gray-100" />
+        <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 cursor-pointer">
+          <LogOut className="h-4 w-4" />
+          <span>Sign Out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
