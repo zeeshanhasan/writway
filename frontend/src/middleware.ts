@@ -5,17 +5,16 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1
 
 async function isAuthenticated(request: NextRequest): Promise<boolean> {
   try {
-    // Extract token from cookie or Authorization header
-    const token = request.cookies.get('access_token')?.value || 
-                  request.headers.get('authorization')?.replace('Bearer ', '');
+    // Check if access_token cookie exists
+    const token = request.cookies.get('access_token')?.value;
     
     if (!token) return false;
 
     const res = await fetch(`${API_URL}/auth/me`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'content-type': 'application/json',
+        'cookie': `access_token=${token}`,
       },
       cache: 'no-store',
     });
