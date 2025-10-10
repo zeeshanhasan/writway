@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import * as passport from 'passport';
 import { errorHandler } from './middlewares/errorHandler';
 import { requestIdMiddleware } from './middlewares/requestId';
 import { checkDatabaseReady } from './utils/dbHealth';
@@ -17,6 +18,9 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 app.use(requestIdMiddleware);
+
+// Initialize Passport middleware globally
+app.use(passport.initialize());
 
 // Health & readiness (lightweight, no auth)
 app.get('/api/v1/health', (_req: Request, res: Response) => {

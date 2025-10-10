@@ -93,9 +93,6 @@ passport.use(new GoogleStrategy({
   }
 }));
 
-// Initialize passport middleware
-router.use(passport.initialize());
-
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', {
   scope: ['profile', 'email'],
