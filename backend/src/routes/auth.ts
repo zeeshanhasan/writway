@@ -137,18 +137,19 @@ router.get('/callback',
       // });
 
       // Set tokens in httpOnly cookies
+      // Use sameSite='none' for cross-origin, requires secure=true in production
       res.cookie('access_token', tokens.accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: true, // Always use secure for sameSite=none
+        sameSite: 'none',
         domain: process.env.COOKIE_DOMAIN || undefined,
         maxAge: 15 * 60 * 1000 // 15 minutes
       });
 
       res.cookie('refresh_token', tokens.refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: true, // Always use secure for sameSite=none
+        sameSite: 'none',
         domain: process.env.COOKIE_DOMAIN || undefined,
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
