@@ -104,6 +104,24 @@ passport.use(new GoogleStrategy({
   }
 }));
 
+// Test cookie endpoint
+router.get('/test-cookie', (req: Request, res: Response) => {
+  console.log('Setting test cookie with domain:', process.env.COOKIE_DOMAIN);
+  res.cookie('test_cookie', 'test_value', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    domain: process.env.COOKIE_DOMAIN || undefined,
+    maxAge: 15 * 60 * 1000
+  });
+  res.json({
+    success: true,
+    message: 'Cookie set',
+    domain: process.env.COOKIE_DOMAIN,
+    cookieHeader: res.getHeader('Set-Cookie')
+  });
+});
+
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', {
   scope: ['profile', 'email'],
