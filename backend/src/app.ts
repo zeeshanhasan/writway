@@ -29,7 +29,8 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
     data: { 
       status: 'ok', 
       uptime: process.uptime(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      version: 'v1.0.1-cookie-fix-deployed'  // Version marker
     }, 
     error: null 
   });
