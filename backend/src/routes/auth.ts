@@ -20,12 +20,16 @@ passport.use(new GoogleStrategy({
   callbackURL: process.env.GOOGLE_CALLBACK_URL || ''
 }, async (accessToken, refreshToken, profile, done) => {
   try {
+    console.log('Google strategy callback executed');
+    console.log('Profile received:', { id: profile.id, email: profile.emails?.[0]?.value });
+    
     const { id: googleId, emails, displayName, photos } = profile;
     const email = emails?.[0]?.value;
     const name = displayName;
     const image = photos?.[0]?.value;
 
     if (!email) {
+      console.log('Error: No email provided by Google');
       return done(new Error('Email not provided by Google'), undefined);
     }
 
@@ -113,11 +117,17 @@ router.get('/callback',
   }),
   async (req: Request, res: Response) => {
     try {
+      console.log('OAuth callback reached');
+      console.log('User from passport:', req.user ? 'exists' : 'null');
+      
       const user = req.user as any;
       
       if (!user) {
+        console.log('No user found, redirecting to login');
         return res.redirect(`${process.env.CORS_ORIGIN}/auth/login?error=auth_failed`);
       }
+      
+      console.log('User found, generating tokens for:', user.email);
 
       // Generate JWT tokens
       const tokens = authService.generateTokens(user.id, user.tenantId, user.role);
@@ -138,6 +148,7 @@ router.get('/callback',
 
       // Set tokens in httpOnly cookies
       // Use sameSite='none' for cross-origin, requires secure=true in production
+      console.log('Setting cookies with domain:', process.env.COOKIE_DOMAIN);
       res.cookie('access_token', tokens.accessToken, {
         httpOnly: true,
         secure: true, // Always use secure for sameSite=none
@@ -156,6 +167,7 @@ router.get('/callback',
 
       // Redirect based on onboarding status
       const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0] || 'http://localhost:3000';
+      console.log('Redirecting to:', user.Tenant.isOnboardingComplete ? `${corsOrigin}/dashboard` : `${corsOrigin}/auth/welcome`);
       
       if (!user.Tenant.isOnboardingComplete) {
         return res.redirect(`${corsOrigin}/auth/welcome`);
