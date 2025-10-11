@@ -104,10 +104,10 @@ passport.use(new GoogleStrategy({
   }
 }));
 
-// Test cookie endpoint
+// Test cookie endpoint - updated to verify deployment
 router.get('/test-cookie', (req: Request, res: Response) => {
   console.log('Setting test cookie with domain:', process.env.COOKIE_DOMAIN);
-  res.cookie('test_cookie', 'test_value', {
+  res.cookie('test_cookie', 'test_value_v2', {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
@@ -116,8 +116,9 @@ router.get('/test-cookie', (req: Request, res: Response) => {
   });
   res.json({
     success: true,
-    message: 'Cookie set',
+    message: 'Cookie set - version 2',
     domain: process.env.COOKIE_DOMAIN,
+    sameSite: 'none',
     cookieHeader: res.getHeader('Set-Cookie')
   });
 });
