@@ -8,9 +8,12 @@ async function getApp() {
   if (!app) {
     try {
       console.log('Loading app...');
-      const appModule = await import('../src/app');
+      // Import from dist in production (compiled), src in dev
+      const appModule = process.env.NODE_ENV === 'production' 
+        ? await import('../dist/app')
+        : await import('../src/app');
       app = appModule.app;
-      console.log('App loaded successfully');
+      console.log('App loaded successfully from:', process.env.NODE_ENV === 'production' ? 'dist' : 'src');
     } catch (error) {
       console.error('Failed to load app:', error);
       throw error;
