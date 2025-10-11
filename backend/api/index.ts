@@ -37,11 +37,12 @@ async function getHandler() {
 
 export default async (req: any, res: any) => {
   try {
-    console.log('Serverless function called:', req.method, req.url);
+    console.log('Serverless function called - VERSION 1.0.2:', req.method, req.url);
     console.log('Environment check:', {
       hasDatabaseUrl: !!process.env.DATABASE_URL,
       hasJwtSecret: !!process.env.JWT_SECRET,
-      nodeEnv: process.env.NODE_ENV
+      nodeEnv: process.env.NODE_ENV,
+      version: '1.0.2-vercel-ts-direct'
     });
     
     const serverlessHandler = await getHandler();
