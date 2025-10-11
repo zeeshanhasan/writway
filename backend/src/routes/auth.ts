@@ -110,21 +110,31 @@ router.get('/google', passport.authenticate('google', {
   session: false
 }));
 
-router.get('/callback',
+router.get('/callback', (req: Request, res: Response, next) => {
+  console.log('=== Callback route hit ===');
+  console.log('Query params:', req.query);
+  console.log('Has code:', !!req.query.code);
+  console.log('Has error:', !!req.query.error);
+  
   passport.authenticate('google', { 
-    failureRedirect: `${process.env.CORS_ORIGIN}/auth/login`,
     session: false
-  }),
-  async (req: Request, res: Response) => {
+  }, async (err: Error | null, user: any, info: any) => {
+    console.log('=== Passport authenticate callback ===');
+    console.log('Error:', err);
+    console.log('User:', user ? 'exists' : 'null');
+    console.log('Info:', info);
+    
     try {
-      console.log('OAuth callback reached');
-      console.log('User from passport:', req.user ? 'exists' : 'null');
-      
-      const user = req.user as any;
+      if (err) {
+        console.error('Passport authentication error:', err);
+        const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 'http://localhost:3000';
+        return res.redirect(`${corsOrigin}/auth/login?error=auth_error`);
+      }
       
       if (!user) {
         console.log('No user found, redirecting to login');
-        return res.redirect(`${process.env.CORS_ORIGIN}/auth/login?error=auth_failed`);
+        const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 'http://localhost:3000';
+        return res.redirect(`${corsOrigin}/auth/login?error=no_user`);
       }
       
       console.log('User found, generating tokens for:', user.email);
@@ -166,7 +176,7 @@ router.get('/callback',
       });
 
       // Redirect based on onboarding status
-      const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0] || 'http://localhost:3000';
+      const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 'http://localhost:3000';
       console.log('Redirecting to:', user.Tenant.isOnboardingComplete ? `${corsOrigin}/dashboard` : `${corsOrigin}/auth/welcome`);
       
       if (!user.Tenant.isOnboardingComplete) {
@@ -176,10 +186,11 @@ router.get('/callback',
       }
     } catch (error) {
       console.error('OAuth callback error:', error);
-      res.redirect(`${process.env.CORS_ORIGIN}/auth/login?error=callback_error`);
+      const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 'http://localhost:3000';
+      res.redirect(`${corsOrigin}/auth/login?error=callback_error`);
     }
-  }
-);
+  })(req, res, next);
+});
 
 // Logout
 router.post('/logout', async (req: Request, res: Response) => {
