@@ -20,7 +20,20 @@ app.use(cookieParser());
 app.use(requestIdMiddleware);
 
 // Initialize Passport middleware globally
-app.use(passport.initialize());
+try {
+  console.log('Passport module:', passport);
+  console.log('Passport.initialize:', typeof passport.initialize);
+  if (typeof passport.initialize === 'function') {
+    app.use(passport.initialize());
+    console.log('Passport initialized successfully');
+  } else {
+    console.error('passport.initialize is not a function!');
+    throw new Error('passport.initialize is not a function');
+  }
+} catch (error) {
+  console.error('Failed to initialize passport:', error);
+  throw error;
+}
 
 // Health & readiness (lightweight, no auth)
 app.get('/api/v1/health', (_req: Request, res: Response) => {
