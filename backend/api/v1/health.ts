@@ -1,30 +1,16 @@
-import serverless from 'serverless-http';
-
-let handler: any = null;
-
-async function getHandler() {
-  if (!handler) {
-    try {
-      // Import from dist in production (compiled), src in dev
-      const appModule = process.env.NODE_ENV === 'production' 
-        ? await import('../../dist/app')
-        : await import('../../src/app');
-      
-      handler = serverless(appModule.app, {
-        binary: ['image/*', 'application/pdf']
-      });
-    } catch (error) {
-      console.error('Failed to create handler:', error);
-      throw error;
-    }
-  }
-  return handler;
-}
-
-export default async (req: any, res: any) => {
+// Lightweight health check - no Express app loading
+export default async function handler(_req: any, res: any) {
   try {
-    const serverlessHandler = await getHandler();
-    return await serverlessHandler(req, res);
+    return res.status(200).json({ 
+      success: true, 
+      data: { 
+        status: 'ok', 
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        version: 'v1.0.2-standalone-health'  // Version marker
+      }, 
+      error: null 
+    });
   } catch (error) {
     console.error('Health endpoint error:', error);
     return res.status(500).json({
@@ -36,5 +22,5 @@ export default async (req: any, res: any) => {
       }
     });
   }
-};
+}
 
