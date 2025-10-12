@@ -1,7 +1,7 @@
 // Get current user endpoint
 export default async function handler(req: any, res: any) {
   // Load modules at runtime (Vercel compiles TS to JS automatically)
-  const { prisma } = require('../../../../dist/config/prisma.js');
+  const { prisma } = require('../../../dist/config/prisma.js');
   const jwt = require('jsonwebtoken');
   
   try {

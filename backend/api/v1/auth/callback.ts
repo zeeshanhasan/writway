@@ -1,8 +1,8 @@
 // Google OAuth callback endpoint
 export default async function handler(req: any, res: any) {
   // Load modules at runtime (Vercel compiles TS to JS automatically)
-  const { prisma } = require('../../../../dist/config/prisma.js');
-  const { authService } = require('../../../../dist/services/auth.service.js');
+  const { prisma } = require('../../../dist/config/prisma.js');
+  const { authService } = require('../../../dist/services/auth.service.js');
   
   try {
     const { code, error: oauthError } = req.query;
