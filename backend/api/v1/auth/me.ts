@@ -1,8 +1,16 @@
-import { prisma } from '../../../../src/config/prisma';
-import * as jwt from 'jsonwebtoken';
-
 // Get current user endpoint
 export default async function handler(req: any, res: any) {
+  // Dynamic imports from dist in production, src in development
+  const isProd = process.env.NODE_ENV === 'production';
+  const prismaModule = isProd 
+    ? await import('../../../../dist/config/prisma')
+    : await import('../../../../src/config/prisma');
+  const jwt = isProd
+    ? await import('jsonwebtoken')
+    : await import('jsonwebtoken');
+
+  const { prisma } = prismaModule;
+  
   try {
     // Extract token from cookies
     const token = req.cookies?.access_token;

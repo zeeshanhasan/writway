@@ -1,8 +1,17 @@
-import { prisma } from '../../../../src/config/prisma';
-import { authService } from '../../../../src/services/auth.service';
-
 // Google OAuth callback endpoint
 export default async function handler(req: any, res: any) {
+  // Dynamic imports from dist in production, src in development
+  const isProd = process.env.NODE_ENV === 'production';
+  const prismaModule = isProd 
+    ? await import('../../../../dist/config/prisma')
+    : await import('../../../../src/config/prisma');
+  const authModule = isProd
+    ? await import('../../../../dist/services/auth.service')
+    : await import('../../../../src/services/auth.service');
+
+  const { prisma } = prismaModule;
+  const { authService } = authModule;
+  
   try {
     const { code, error: oauthError } = req.query;
 
