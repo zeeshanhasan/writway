@@ -57,8 +57,8 @@ Authoritative rules for the Node.js API layer used by WritWay. These rules are b
 
 Vercel maps file paths in `/api` directory directly to URL routes:
 - `api/v1/health.ts` → `/api/v1/health` endpoint
-- `api/v1/ready.ts` → `/api/v1/ready` endpoint
-- `api/index.ts` → `/api` endpoint (root only)
+- `api/v1/auth/google.ts` → `/api/v1/auth/google` endpoint
+- `api/v1/auth/callback.ts` → `/api/v1/auth/callback` endpoint
 
 **File Structure Requirements:**
 * Each TypeScript file in `/backend/api/**/*.ts` becomes a standalone serverless function
@@ -66,26 +66,62 @@ Vercel maps file paths in `/api` directory directly to URL routes:
 * Each file must export a default function: `export default async function handler(req, res) { }`
 * Do NOT use catch-all routes like `[...path].ts` - they don't work reliably with Express apps
 * Do NOT try to route everything through a single Express app in `api/index.ts`
+* **NEVER use Express wrapper for individual endpoints** - Vercel serverless functions work best standalone
 
 **Individual Serverless Functions (REQUIRED PATTERN):**
 ```typescript
-// api/v1/ready.ts
-import { checkDatabaseReady } from '../../src/utils/dbHealth';
-
+// api/v1/health.ts
 export default async function handler(_req: any, res: any) {
-  const dbReady = await checkDatabaseReady();
-  return res.status(dbReady ? 200 : 503).json({
-    success: dbReady,
-    data: { db: dbReady ? 'connected' : 'disconnected' },
-    error: dbReady ? null : { code: 'DB_UNAVAILABLE', message: 'Database not ready' }
-  });
+  try {
+    return res.status(200).json({ 
+      success: true, 
+      data: { 
+        status: 'ok', 
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        version: 'v1.0.2-standalone'
+      }, 
+      error: null 
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      data: null,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }
+    });
+  }
 }
 ```
+
+**Importing from Compiled Code:**
+When serverless functions need to use shared utilities (Prisma, services), they must import from the **compiled `dist/` folder**:
+
+```typescript
+// api/v1/auth/callback.ts
+export default async function handler(req: any, res: any) {
+  // Load modules at runtime from compiled code
+  // Path is relative to backend/api/v1/auth/ → backend/dist/
+  const { prisma } = require('../../../dist/config/prisma.js');
+  const { authService } = require('../../../dist/services/auth.service.js');
+  
+  // ... rest of handler logic
+}
+```
+
+**Import Path Rules:**
+* From `api/v1/auth/*.ts` → use `../../../dist/` (3 levels up)
+* From `api/v1/*.ts` → use `../../dist/` (2 levels up)
+* From `api/*.ts` → use `../dist/` (1 level up)
+* Always use `.js` extension (TypeScript compiles to JS)
+* Use `require()` not `import` for runtime loading
 
 **Vercel Configuration (`vercel.json`):**
 ```json
 {
-  "buildCommand": "npm run build && npx prisma generate",
+  "buildCommand": "npx prisma generate && npm run build",
   "installCommand": "npm install",
   "env": {
     "PRISMA_DISABLE_PREPARED_STATEMENTS": "true"
@@ -93,27 +129,43 @@ export default async function handler(_req: any, res: any) {
 }
 ```
 
+**IMPORTANT: `.vercelignore` File:**
+```
+node_modules
+.env
+.env.local
+*.log
+.DS_Store
+coverage
+```
+
+**DO NOT ignore `dist/` folder** - compiled code must be included in deployment!
+
 **Project Setup:**
 * Separate Vercel project for backend at `api.writway.com`
+* Vercel Root Directory: `backend` (set in project settings)
 * Runtime: Auto-detected from package.json (Node.js 20.x)
 * Regions: Deploy to `iad1` (US East) or closest to Supabase region
-* Build command: `npm run build && npx prisma generate`
+* Build command: `npx prisma generate && npm run build`
 * Environment variables: Set ALL required vars in Vercel dashboard (see §15.1)
 * No migrations at build time: Migrations run via GitHub Actions before deploy
 
 **Common Pitfalls (AVOID):**
 * ❌ Using `api/[...path].ts` catch-all routes with Express apps
 * ❌ Trying to mount Express app at `api/index.ts` to handle all routes
-* ❌ Multiple conflicting route handlers (e.g., `api/index.ts` + `api/v1/health.ts`)
-* ❌ Using Prisma in serverless health checks (too heavy, use utility functions)
-* ❌ Forgetting to run `npx prisma generate` in build command
+* ❌ Using `import` statements for runtime module loading (use `require()`)
+* ❌ Wrong import paths (must account for Vercel's deployment structure)
+* ❌ Including `dist/` in `.vercelignore` (compiled code won't deploy)
+* ❌ Using `import * as passport from 'passport'` (use `import passport from 'passport'`)
+* ❌ Forgetting to run `npx prisma generate` before `npm run build`
 
 **Correct Pattern:**
-* ✅ One file per endpoint: `api/v1/health.ts`, `api/v1/ready.ts`, etc.
-* ✅ Each file is self-contained with its own imports
-* ✅ Import shared utilities from `/src` directory
+* ✅ One file per endpoint: `api/v1/health.ts`, `api/v1/auth/google.ts`, etc.
+* ✅ Each file is self-contained with runtime imports via `require()`
+* ✅ Import from compiled `dist/` folder with correct relative paths
 * ✅ Use standard response envelope in every function
-* ✅ Proper error handling in each function
+* ✅ Proper error handling and logging in each function
+* ✅ Test locally with `NODE_ENV=production node -e "require('./dist/config/prisma.js')"`
 
 ---
 

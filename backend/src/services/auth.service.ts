@@ -1,5 +1,5 @@
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
+import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
 
 interface TokenPayload {
   userId: string;

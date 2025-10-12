@@ -1,0 +1,461 @@
+---
+description: Deployment guidelines and procedures for WritWay
+globs:
+alwaysApply: true
+---
+
+# Deployment Guidelines
+
+Authoritative rules for deploying WritWay frontend and backend to Vercel. These rules prevent common deployment issues and ensure consistency across environments.
+
+---
+
+## 0) Overview
+
+WritWay uses a **monorepo structure** with separate deployments:
+- **Frontend**: Next.js app deployed to `https://www.writway.com`
+- **Backend**: Node.js serverless functions deployed to `https://api.writway.com`
+
+Both are deployed to **Vercel** using CLI commands (no GitHub auto-deploy).
+
+---
+
+## 1) Branch Workflow
+
+### 1.1 Branch Strategy
+- **`develop`**: Development branch for active work
+- **`main`**: Production-ready code only
+
+### 1.2 Development Flow
+1. Work on `develop` branch locally
+2. Test changes thoroughly
+3. When ready for production:
+   - Merge `develop` → `main`
+   - Deploy from `main` via Vercel CLI
+   - NEVER deploy from `develop` to production
+
+### 1.3 Git Commands
+```bash
+# Work on develop
+git checkout develop
+git add .
+git commit -m "Description of changes"
+git push origin develop
+
+# When ready for production
+git checkout main
+git merge develop
+git push origin main
+```
+
+---
+
+## 2) Pre-Deployment Checklist
+
+### 2.1 Before ANY Deployment
+
+**CRITICAL: Always check git status first**
+```bash
+git status
+```
+
+If you see uncommitted files:
+- ❌ **STOP** - Do not deploy
+- Review all changes
+- Commit or discard appropriately
+- Clean working tree required
+
+**Files to check:**
+- No untracked files in `/backend/api/`
+- No modified files in `/backend/src/`
+- No build artifacts (`dist/`, `node_modules/`, `.vercel/`)
+- Check for temp files (`.env.production`, `test-*.html`, etc.)
+
+### 2.2 Backend Pre-Deployment
+```bash
+cd backend
+
+# 1. Clean build
+rm -rf dist
+npm run build
+
+# 2. Verify compiled code exists
+ls -la dist/
+
+# 3. Test Prisma client
+npx prisma generate
+
+# 4. Verify imports work
+node -e "require('./dist/config/prisma.js')"
+
+# 5. Check .vercelignore
+cat .vercelignore  # Should NOT include 'dist'
+```
+
+### 2.3 Frontend Pre-Deployment
+```bash
+cd frontend
+
+# 1. Check environment variables
+cat .env.local
+# Verify NEXT_PUBLIC_API_URL=https://api.writway.com/api/v1
+
+# 2. Build locally
+npm run build
+
+# 3. Check for type errors
+npm run type-check  # if available
+```
+
+---
+
+## 3) Deployment Commands
+
+### 3.1 Deploy from Workspace Root
+
+**ALWAYS deploy from the workspace root** `/Users/zeeshanhasan/Development/writway`
+
+```bash
+# Navigate to workspace root
+cd /Users/zeeshanhasan/Development/writway
+
+# Ensure you're on main branch
+git branch  # Should show * main
+
+# Deploy backend
+vercel --prod --yes
+
+# Deploy frontend (after backend succeeds)
+cd frontend
+vercel --prod --yes
+cd ..
+```
+
+### 3.2 Vercel Project Linking
+
+The workspace should have `.vercel/` folders that link to projects:
+- `/writway/.vercel/` → links to `ww-api` (backend)
+- `/writway/frontend/.vercel/` → links to `writway` (frontend)
+
+**If linking is broken:**
+```bash
+# Re-link backend
+cd /Users/zeeshanhasan/Development/writway
+rm -rf .vercel
+vercel link --yes --project ww-api
+
+# Re-link frontend
+cd frontend
+rm -rf .vercel
+vercel link --yes --project writway
+```
+
+---
+
+## 4) Deployment Verification
+
+### 4.1 Backend Verification
+
+**Immediately after deployment:**
+```bash
+# 1. Health check
+curl https://api.writway.com/api/v1/health | python3 -m json.tool
+
+# Expected response:
+# {
+#   "success": true,
+#   "data": {
+#     "status": "ok",
+#     "uptime": <number>,
+#     "timestamp": "<ISO date>",
+#     "version": "v1.0.x"
+#   },
+#   "error": null
+# }
+
+# 2. Check OAuth redirect
+curl -I https://api.writway.com/api/v1/auth/google
+# Expected: 302 redirect to accounts.google.com
+
+# 3. Check logs for errors
+vercel logs api.writway.com | head -50
+```
+
+### 4.2 Frontend Verification
+
+```bash
+# 1. Check homepage loads
+curl -I https://www.writway.com
+# Expected: 200 OK
+
+# 2. Test in browser
+open https://www.writway.com
+
+# Check:
+# - Homepage renders correctly
+# - Navigation works
+# - Login button redirects to Google OAuth
+# - After login, redirects to /auth/welcome or /dashboard
+```
+
+### 4.3 Full OAuth Flow Test
+
+**Manual browser test (REQUIRED after backend deployment):**
+1. Go to `https://www.writway.com`
+2. Click "Login via Google"
+3. Complete Google authentication
+4. Verify redirect to `/auth/welcome` or `/dashboard`
+5. Check browser DevTools → Application → Cookies
+   - Should see `access_token` and `refresh_token`
+   - Domain should be `.writway.com`
+   - HttpOnly and Secure flags should be set
+
+---
+
+## 5) Common Deployment Issues & Fixes
+
+### 5.1 "Cannot find module" Errors
+
+**Symptom:** Serverless function crashes with `Cannot find module '../../../dist/...'`
+
+**Cause:** Import paths incorrect or `dist/` not included in deployment
+
+**Fix:**
+1. Check `.vercelignore` - ensure `dist` is NOT listed
+2. Verify import paths in `api/` files:
+   - From `api/v1/auth/*.ts` → `../../../dist/`
+   - From `api/v1/*.ts` → `../../dist/`
+3. Rebuild and redeploy:
+   ```bash
+   cd backend
+   rm -rf dist
+   npm run build
+   cd ..
+   vercel --prod --yes
+   ```
+
+### 5.2 "FUNCTION_INVOCATION_TIMEOUT"
+
+**Symptom:** Endpoint times out after 30+ seconds
+
+**Cause:** Code trying to load heavy modules (Express app, Passport) incorrectly
+
+**Fix:**
+- Use standalone serverless functions, not Express wrappers
+- Load modules with `require()` at runtime, not `import`
+- Avoid loading entire app in individual endpoints
+
+### 5.3 "passport.initialize is not a function"
+
+**Symptom:** Error when trying to initialize Passport
+
+**Cause:** Wrong import syntax (`import * as passport` vs `import passport`)
+
+**Fix:**
+```typescript
+// ❌ Wrong
+import * as passport from 'passport';
+
+// ✅ Correct
+import passport from 'passport';
+```
+
+### 5.4 Cookies Not Set After OAuth
+
+**Symptom:** User logged in but immediately redirected back to login
+
+**Cause:** Cookie domain or SameSite attribute incorrect
+
+**Fix:**
+1. Check `COOKIE_DOMAIN` env var in Vercel: `.writway.com` (with dot)
+2. Ensure cookies use `sameSite: 'none'` and `secure: true`
+3. Verify in callback handler:
+   ```typescript
+   res.setHeader('Set-Cookie', [
+     `access_token=${token}; HttpOnly; Secure; SameSite=None; Domain=.writway.com; ...`,
+   ]);
+   ```
+
+### 5.5 Vercel Build Fails with TypeScript Errors
+
+**Symptom:** `error TS2307: Cannot find module`
+
+**Cause:** Using `import` statements that TypeScript tries to resolve at build time
+
+**Fix:**
+- Use `require()` for runtime module loading
+- Add `.js` extension to require paths
+- Example: `require('../../../dist/config/prisma.js')`
+
+---
+
+## 6) Environment Variables
+
+### 6.1 Backend Environment Variables (Vercel Dashboard)
+
+**Required in `ww-api` project:**
+```
+NODE_ENV=production
+DATABASE_URL=<Supabase pooled connection string>
+DIRECT_DATABASE_URL=<Supabase direct connection string>
+PRISMA_DISABLE_PREPARED_STATEMENTS=true
+JWT_SECRET=<random 32+ char string>
+JWT_REFRESH_SECRET=<random 32+ char string>
+GOOGLE_CLIENT_ID=<from Google Cloud Console>
+GOOGLE_CLIENT_SECRET=<from Google Cloud Console>
+GOOGLE_CALLBACK_URL=https://api.writway.com/api/v1/auth/callback
+CORS_ORIGIN=https://www.writway.com,https://api.writway.com
+COOKIE_DOMAIN=.writway.com
+```
+
+**Setting variables:**
+1. Go to Vercel dashboard → `ww-api` project → Settings → Environment Variables
+2. Add each variable for **Production** environment
+3. Redeploy after adding/changing variables
+
+### 6.2 Frontend Environment Variables (Vercel Dashboard)
+
+**Required in `writway` project:**
+```
+NEXT_PUBLIC_API_URL=https://api.writway.com/api/v1
+NEXT_PUBLIC_ENV=production
+```
+
+---
+
+## 7) Rollback Procedure
+
+### 7.1 Quick Rollback
+
+If deployment breaks production:
+```bash
+# 1. Find last working deployment
+vercel ls --prod
+
+# 2. Promote previous deployment
+vercel promote <deployment-url> --yes
+
+# Example:
+# vercel promote ww-abc123xyz-zeeshan-hasans-projects.vercel.app --yes
+```
+
+### 7.2 Git Rollback
+
+If code changes need to be reverted:
+```bash
+# 1. Identify last working commit
+git log --oneline -10
+
+# 2. Revert to that commit
+git revert <commit-hash>
+git push origin main
+
+# 3. Redeploy
+vercel --prod --yes
+```
+
+---
+
+## 8) Deployment Logs
+
+### 8.1 Viewing Logs
+
+```bash
+# Backend runtime logs
+vercel logs api.writway.com
+
+# Frontend logs
+vercel logs www.writway.com
+
+# Specific deployment logs
+vercel inspect <deployment-url> --logs
+
+# Follow logs in real-time
+vercel logs api.writway.com --follow
+```
+
+### 8.2 Log Analysis
+
+**Look for:**
+- ✅ "Serverless function called - VERSION x.x.x"
+- ✅ "Loading app... App loaded successfully"
+- ❌ "Cannot find module"
+- ❌ "FUNCTION_INVOCATION_TIMEOUT"
+- ❌ "FUNCTION_INVOCATION_FAILED"
+- ❌ "TypeError: ... is not a function"
+
+---
+
+## 9) Testing Checklist (Before Declaring Success)
+
+### 9.1 Backend Tests
+- [ ] Health endpoint returns 200 with version
+- [ ] OAuth redirect endpoint returns 302 to Google
+- [ ] OAuth callback endpoint processes code without crashing
+- [ ] Auth /me endpoint returns 401 when not authenticated
+- [ ] Logs show no errors
+
+### 9.2 Frontend Tests
+- [ ] Homepage loads without errors
+- [ ] Navigation works
+- [ ] Login button redirects correctly
+- [ ] OAuth flow completes end-to-end
+- [ ] Dashboard loads after login
+- [ ] User menu shows correct data
+
+### 9.3 Integration Tests
+- [ ] Full OAuth flow (login → callback → dashboard)
+- [ ] Cookies set correctly (check DevTools)
+- [ ] API calls include cookies
+- [ ] /auth/me returns user data when authenticated
+
+---
+
+## 10) Emergency Contacts & Resources
+
+### 10.1 Key URLs
+- Vercel Dashboard: https://vercel.com/zeeshan-hasans-projects
+- Backend Project: https://vercel.com/zeeshan-hasans-projects/ww-api
+- Frontend Project: https://vercel.com/zeeshan-hasans-projects/writway
+- Google Cloud Console: https://console.cloud.google.com
+- Supabase Dashboard: https://supabase.com/dashboard/project/<project-id>
+
+### 10.2 Quick Reference
+- Backend repo path: `/Users/zeeshanhasan/Development/writway/backend`
+- Frontend repo path: `/Users/zeeshanhasan/Development/writway/frontend`
+- Rules directory: `/Users/zeeshanhasan/Development/writway/.cursor/rules/`
+
+---
+
+## 11) Best Practices
+
+### 11.1 DO
+✅ Always work on `develop` branch locally
+✅ Test thoroughly before merging to `main`
+✅ Check git status before deploying
+✅ Deploy backend before frontend
+✅ Verify deployment immediately after
+✅ Keep deployment logs for debugging
+✅ Document any issues encountered
+
+### 11.2 DON'T
+❌ Never deploy with uncommitted changes
+❌ Never deploy directly from `develop` to production
+❌ Never skip the verification checklist
+❌ Never ignore build warnings
+❌ Never modify Vercel env vars without documenting
+❌ Never delete `dist/` folder before deployment
+❌ Never deploy without testing OAuth flow
+
+---
+
+## 12) Linked Documents
+
+* **Backend technical rules** → `backend.mdc`
+* **Frontend technical rules** → `frontend.mdc`
+* **Database schema** → `database.mdc`
+* **DevOps workflows** → `devops.mdc`
+
+---
+
+> **Remember**: Deployments should be boring and predictable. If something feels risky, stop and review these guidelines.

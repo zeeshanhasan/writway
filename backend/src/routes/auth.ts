@@ -7,18 +7,29 @@ import { authService } from '../services/auth.service';
 export const router = Router();
 
 // Configure Google OAuth strategy
+console.log('Configuring Google OAuth strategy:', {
+  hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+  hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+  hasCallbackUrl: !!process.env.GOOGLE_CALLBACK_URL,
+  callbackUrl: process.env.GOOGLE_CALLBACK_URL
+});
+
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID || '',
   clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   callbackURL: process.env.GOOGLE_CALLBACK_URL || ''
 }, async (accessToken, refreshToken, profile, done) => {
   try {
+    console.log('Google strategy callback executed');
+    console.log('Profile received:', { id: profile.id, email: profile.emails?.[0]?.value });
+    
     const { id: googleId, emails, displayName, photos } = profile;
     const email = emails?.[0]?.value;
     const name = displayName;
     const image = photos?.[0]?.value;
 
     if (!email) {
+      console.log('Error: No email provided by Google');
       return done(new Error('Email not provided by Google'), undefined);
     }
 
@@ -93,8 +104,24 @@ passport.use(new GoogleStrategy({
   }
 }));
 
-// Initialize passport middleware
-router.use(passport.initialize());
+// Test cookie endpoint - updated to verify deployment
+router.get('/test-cookie', (req: Request, res: Response) => {
+  console.log('Setting test cookie with domain:', process.env.COOKIE_DOMAIN);
+  res.cookie('test_cookie', 'test_value_v2', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    domain: process.env.COOKIE_DOMAIN || undefined,
+    maxAge: 15 * 60 * 1000
+  });
+  res.json({
+    success: true,
+    message: 'Cookie set - version 2',
+    domain: process.env.COOKIE_DOMAIN,
+    sameSite: 'none',
+    cookieHeader: res.getHeader('Set-Cookie')
+  });
+});
 
 // Google OAuth routes
 router.get('/google', passport.authenticate('google', {
@@ -102,18 +129,34 @@ router.get('/google', passport.authenticate('google', {
   session: false
 }));
 
-router.get('/callback',
+router.get('/callback', (req: Request, res: Response, next) => {
+  console.log('=== Callback route hit ===');
+  console.log('Query params:', req.query);
+  console.log('Has code:', !!req.query.code);
+  console.log('Has error:', !!req.query.error);
+  
   passport.authenticate('google', { 
-    failureRedirect: `${process.env.CORS_ORIGIN}/auth/login`,
     session: false
-  }),
-  async (req: Request, res: Response) => {
+  }, async (err: Error | null, user: any, info: any) => {
+    console.log('=== Passport authenticate callback ===');
+    console.log('Error:', err);
+    console.log('User:', user ? 'exists' : 'null');
+    console.log('Info:', info);
+    
     try {
-      const user = req.user as any;
+      if (err) {
+        console.error('Passport authentication error:', err);
+        const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 'http://localhost:3000';
+        return res.redirect(`${corsOrigin}/auth/login?error=auth_error`);
+      }
       
       if (!user) {
-        return res.redirect(`${process.env.CORS_ORIGIN}/auth/login?error=auth_failed`);
+        console.log('No user found, redirecting to login');
+        const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 'http://localhost:3000';
+        return res.redirect(`${corsOrigin}/auth/login?error=no_user`);
       }
+      
+      console.log('User found, generating tokens for:', user.email);
 
       // Generate JWT tokens
       const tokens = authService.generateTokens(user.id, user.tenantId, user.role);
@@ -133,22 +176,27 @@ router.get('/callback',
       // });
 
       // Set tokens in httpOnly cookies
+      // Use sameSite='none' for cross-origin, requires secure=true in production
+      console.log('Setting cookies with domain:', process.env.COOKIE_DOMAIN);
       res.cookie('access_token', tokens.accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: true, // Always use secure for sameSite=none
+        sameSite: 'none',
+        domain: process.env.COOKIE_DOMAIN || undefined,
         maxAge: 15 * 60 * 1000 // 15 minutes
       });
 
       res.cookie('refresh_token', tokens.refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: true, // Always use secure for sameSite=none
+        sameSite: 'none',
+        domain: process.env.COOKIE_DOMAIN || undefined,
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
 
       // Redirect based on onboarding status
-      const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0] || 'http://localhost:3000';
+      const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 'http://localhost:3000';
+      console.log('Redirecting to:', user.Tenant.isOnboardingComplete ? `${corsOrigin}/dashboard` : `${corsOrigin}/auth/welcome`);
       
       if (!user.Tenant.isOnboardingComplete) {
         return res.redirect(`${corsOrigin}/auth/welcome`);
@@ -157,10 +205,11 @@ router.get('/callback',
       }
     } catch (error) {
       console.error('OAuth callback error:', error);
-      res.redirect(`${process.env.CORS_ORIGIN}/auth/login?error=callback_error`);
+      const corsOrigin = process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 'http://localhost:3000';
+      res.redirect(`${corsOrigin}/auth/login?error=callback_error`);
     }
-  }
-);
+  })(req, res, next);
+});
 
 // Logout
 router.post('/logout', async (req: Request, res: Response) => {

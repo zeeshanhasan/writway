@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import passport from 'passport';
 import { errorHandler } from './middlewares/errorHandler';
 import { requestIdMiddleware } from './middlewares/requestId';
 import { checkDatabaseReady } from './utils/dbHealth';
@@ -18,6 +19,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(requestIdMiddleware);
 
+// Initialize Passport middleware globally
+// TEMPORARILY DISABLED FOR DEBUGGING
+console.log('Skipping passport initialization for now');
+// app.use(passport.initialize());
+
 // Health & readiness (lightweight, no auth)
 app.get('/api/v1/health', (_req: Request, res: Response) => {
   res.json({ 
@@ -25,7 +31,8 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
     data: { 
       status: 'ok', 
       uptime: process.uptime(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      version: 'v1.0.1-cookie-fix-deployed'  // Version marker
     }, 
     error: null 
   });
