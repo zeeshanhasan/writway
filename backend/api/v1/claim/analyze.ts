@@ -1,5 +1,21 @@
 // Analyze claim description endpoint
 export default async function handler(req: any, res: any) {
+  // CORS headers for cross-origin requests
+  const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((o: string) => o.trim()) || ['http://localhost:3000'];
+  const origin = req.headers.origin;
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+
+  // Handle OPTIONS preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   // Load modules at runtime
   const { claimService } = require('../../../dist/services/claim.service.js');
   const { analyzeRequestSchema } = require('../../../dist/schemas/claim.schemas.js');
