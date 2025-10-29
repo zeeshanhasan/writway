@@ -75,6 +75,13 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 # STRIPE_WEBHOOK_SECRET=whsec_your_production_webhook_secret
 
 # ============================================
+# OpenAI API Integration (for Claim Analysis)
+# ============================================
+# Get API key from: https://platform.openai.com/api-keys
+# Required for AI-powered claim questionnaire features
+OPENAI_API_KEY=sk-your-openai-api-key
+
+# ============================================
 # Server Configuration
 # ============================================
 PORT=3001
@@ -123,6 +130,15 @@ Copy each output and paste into your `.env` file.
 2. Copy your test keys for development
 3. Add to `.env` file
 
+#### Get OpenAI API Key
+
+1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Create a new API key or use an existing one
+3. Copy the key (starts with `sk-`)
+4. Add to `.env` file as `OPENAI_API_KEY`
+   
+**Note**: The OpenAI API key is optional. If not provided, AI-powered features will be disabled but the application will still function.
+
 ### Step 4: Verify your .env file
 
 Run this command to check if all variables are set:
@@ -154,6 +170,7 @@ PRISMA_DISABLE_PREPARED_STATEMENTS=true  # MUST be set in Vercel
 NODE_ENV=production
 GOOGLE_CALLBACK_URL=https://api.writway.com/api/v1/auth/callback
 CORS_ORIGIN=https://writway.com
+OPENAI_API_KEY=sk-your-production-openai-key  # Optional but recommended
 ```
 
 ## Security Checklist

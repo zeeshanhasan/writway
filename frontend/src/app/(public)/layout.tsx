@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { Button } from '@/components/ui/button';
 import { Twitter, Linkedin, Facebook } from 'lucide-react';
 import { publicNavItems } from '@/config/navigation';
+import { PublicMobileNav } from '@/components/PublicMobileNav';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -40,6 +41,7 @@ export default async function PublicLayout({ children }: { children: React.React
               <Link href="/">WRITWAY</Link>
             </div>
             
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 gap-6" aria-label="Main">
               {publicNavItems.map((item) => (
                 <Link
@@ -53,8 +55,13 @@ export default async function PublicLayout({ children }: { children: React.React
             </nav>
             
             <div className="flex gap-2 items-center">
+              {/* Mobile Navigation Menu */}
+              <div className="md:hidden">
+                <PublicMobileNav />
+              </div>
+              
               {isAuthed ? (
-                <Button asChild>
+                <Button asChild className="hidden md:inline-flex">
                   <Link href="/dashboard">Dashboard</Link>
                 </Button>
               ) : (
@@ -62,7 +69,11 @@ export default async function PublicLayout({ children }: { children: React.React
                   <Button variant="ghost" asChild className="hidden sm:inline-flex">
                     <Link href="/auth/register">Sign up</Link>
                   </Button>
-                  <Button asChild>
+                  <Button asChild className="hidden sm:inline-flex">
+                    <Link href="/auth/login">Login</Link>
+                  </Button>
+                  {/* Mobile Login Button */}
+                  <Button asChild size="sm" className="sm:hidden">
                     <Link href="/auth/login">Login</Link>
                   </Button>
                 </>
@@ -74,7 +85,7 @@ export default async function PublicLayout({ children }: { children: React.React
       
       <main className="container mx-auto px-4 lg:px-6 py-6">{children}</main>
       
-      <footer className="site-footer">
+      <footer className="site-footer hidden">
         <div className="container mx-auto px-4 lg:px-6">
           <div className="flex flex-col md:flex-row items-center justify-between py-6 gap-4 text-sm">
             <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
