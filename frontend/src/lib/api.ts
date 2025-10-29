@@ -145,6 +145,96 @@ class ApiClient {
       body: JSON.stringify({ planId }),
     });
   }
+
+  // Claim endpoints
+  async analyzeClaimDescription(description: string): Promise<ApiEnvelope<{
+    extracted: Partial<unknown>;
+    missing: string[];
+    ambiguous: Array<{ field: string; reason: string; question: string }>;
+  }>> {
+    return this.request<ApiEnvelope<{
+      extracted: Partial<unknown>;
+      missing: string[];
+      ambiguous: Array<{ field: string; reason: string; question: string }>;
+    }>>('/claim/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ description }),
+    });
+  }
+
+  async getNextQuestion(
+    claimData: Partial<unknown>,
+    answeredQuestions: string[] = []
+  ): Promise<ApiEnvelope<{
+    question: {
+      id: string;
+      field: string;
+      type: 'text' | 'number' | 'date' | 'select' | 'boolean' | 'textarea';
+      label: string;
+      description?: string;
+      required: boolean;
+      options?: Array<{ label: string; value: string }>;
+      validation?: {
+        min?: number;
+        max?: number;
+        pattern?: string;
+      };
+    } | null;
+    completed: boolean;
+  }>> {
+    return this.request<ApiEnvelope<{
+      question: {
+        id: string;
+        field: string;
+        type: 'text' | 'number' | 'date' | 'select' | 'boolean' | 'textarea';
+        label: string;
+        description?: string;
+        required: boolean;
+        options?: Array<{ label: string; value: string }>;
+        validation?: {
+          min?: number;
+          max?: number;
+          pattern?: string;
+        };
+      } | null;
+      completed: boolean;
+    }>>('/claim/questions/next', {
+      method: 'POST',
+      body: JSON.stringify({ claimData, answeredQuestions }),
+    });
+  }
+
+  async generateClaimDocuments(
+    claimData: unknown,
+    initialDescription?: string
+  ): Promise<ApiEnvelope<{
+    pdf: {
+      content: string;
+      filename: string;
+      mimeType: string;
+    };
+    word: {
+      content: string;
+      filename: string;
+      mimeType: string;
+    };
+  }>> {
+    return this.request<ApiEnvelope<{
+      pdf: {
+        content: string;
+        filename: string;
+        mimeType: string;
+      };
+      word: {
+        content: string;
+        filename: string;
+        mimeType: string;
+      };
+    }>>('/claim/generate', {
+      method: 'POST',
+      body: JSON.stringify({ claimData, initialDescription }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

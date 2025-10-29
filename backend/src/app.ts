@@ -102,6 +102,7 @@ import { router as authRouter } from './routes/auth';
 import { router as tenantRouter } from './routes/tenant';
 import { router as planRouter } from './routes/plan';
 import { router as billingRouter } from './routes/billing';
+import { router as claimRouter } from './routes/claim';
 import { authMiddleware } from './middlewares/auth';
 
 // Mount versioned API routes
@@ -109,6 +110,7 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/tenant', authMiddleware, tenantRouter);
 app.use('/api/v1/plan', planRouter);
 app.use('/api/v1/billing', authMiddleware, billingRouter);
+app.use('/api/v1/claim', claimRouter); // Claim routes (no auth required for public claim form)
 
 // Global error handler (must be last)
 app.use(errorHandler);
