@@ -50,7 +50,9 @@ JWT_REFRESH_EXPIRES_IN=7d
 # CORS Configuration
 # ============================================
 # Comma-separated list of allowed origins
-CORS_ORIGIN=http://localhost:3000,https://writway.com
+# IMPORTANT: Use the full production domain with www and api subdomain
+# Example for dev + prod:
+CORS_ORIGIN=http://localhost:3000,https://www.writway.com,https://api.writway.com
 
 # ============================================
 # Google OAuth 2.0
@@ -169,7 +171,8 @@ When deploying to Vercel, set these environment variables in the Vercel dashboar
 PRISMA_DISABLE_PREPARED_STATEMENTS=true  # MUST be set in Vercel
 NODE_ENV=production
 GOOGLE_CALLBACK_URL=https://api.writway.com/api/v1/auth/callback
-CORS_ORIGIN=https://writway.com
+# CORS must include both the frontend and API origins in production
+CORS_ORIGIN=https://www.writway.com,https://api.writway.com
 OPENAI_API_KEY=sk-your-production-openai-key  # Optional but recommended
 ```
 

@@ -49,6 +49,19 @@ Expected packages:
 
 ## Vercel Deployment
 
+### 0. Mandatory Link + Pull (prevents wrong project/root)
+
+Always execute from the directory you will deploy:
+
+```bash
+# Backend (must point to ww-api and rootDirectory=backend)
+cd /Users/zeeshanhasan/Development/writway/backend
+vercel link --yes --project ww-api
+vercel pull --yes --environment=production
+```
+
+This ensures the local folder is linked to the correct Vercel project and pulls the current Production Project Settings (including Root Directory and env vars). If you skip this, deploys may go to the wrong project or use stale settings.
+
 ### 1. Create Vercel Project
 
 - [ ] Log in to [Vercel Dashboard](https://vercel.com)
@@ -99,7 +112,7 @@ JWT_REFRESH_EXPIRES_IN=7d
 **CORS:**
 
 ```bash
-CORS_ORIGIN=https://writway.com
+CORS_ORIGIN=https://www.writway.com,https://api.writway.com
 ```
 
 **Google OAuth:**
@@ -130,6 +143,15 @@ STRIPE_WEBHOOK_SECRET=[production-webhook-secret]
 - [ ] Vercel auto-deploys on push
 - [ ] Monitor build logs in Vercel dashboard
 - [ ] Wait for deployment to complete
+
+Or deploy explicitly from the backend folder (preferred for hotfixes):
+
+```bash
+cd /Users/zeeshanhasan/Development/writway/backend
+vercel link --yes --project ww-api
+vercel pull --yes --environment=production
+vercel --prod --yes
+```
 
 ## Post-Deployment Verification
 
@@ -175,6 +197,32 @@ Test each endpoint:
 - [ ] Check Supabase logs for connection issues
 - [ ] Monitor response times
 - [ ] Verify no CORS errors in browser console
+
+### 5. CORS – Serverless Endpoint Rule (Critical)
+
+Express `app.use(cors(...))` does not apply to files under `backend/api/**`. For any serverless function (e.g., `api/v1/claim/*.ts`), set CORS headers inside the handler and handle `OPTIONS` preflight:
+
+```ts
+// Example (inside a handler)
+const allowed = process.env.CORS_ORIGIN?.split(',').map(o => o.trim()) || [];
+const origin = req.headers.origin;
+if (origin && allowed.includes(origin)) {
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+if (req.method === 'OPTIONS') return res.status(200).end();
+```
+
+Preflight smoke test (must return `Access-Control-Allow-Origin: https://www.writway.com`):
+
+```bash
+curl -X OPTIONS \
+  -H "Origin: https://www.writway.com" \
+  -H "Access-Control-Request-Method: POST" \
+  -I https://api.writway.com/api/v1/claim/analyze
+```
 
 ## Frontend Integration
 
