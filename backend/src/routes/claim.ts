@@ -99,13 +99,17 @@ router.post('/questions/next', async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/claim/generate
- * Generate PDF and Word documents
+ * Generate Form 7A and Schedule A text documents using OpenAI
  */
 router.post('/generate', async (req: Request, res: Response) => {
   try {
+    console.log('[ROUTE] /generate request received');
+    console.log('[ROUTE] Request body keys:', Object.keys(req.body || {}));
+    
     // Validate request body
     const validationResult = generateDocumentsRequestSchema.safeParse(req.body);
     if (!validationResult.success) {
+      console.error('[ROUTE] Validation failed:', validationResult.error.errors);
       return res.status(400).json({
         success: false,
         data: null,
@@ -118,32 +122,34 @@ router.post('/generate', async (req: Request, res: Response) => {
     }
 
     const { claimData, initialDescription } = validationResult.data;
+    console.log('[ROUTE] Has claimData:', !!claimData);
+    console.log('[ROUTE] Has initialDescription:', !!initialDescription);
 
-    // Generate documents
+    // Generate documents (text only from OpenAI)
+    console.log('[ROUTE] Calling documentService.generateDocuments...');
+    const startTime = Date.now();
     const documents = await documentService.generateDocuments(claimData, initialDescription);
-
-    // Convert buffers to base64 for JSON response
-    const pdfBase64 = documents.pdf.toString('base64');
-    const wordBase64 = documents.word.toString('base64');
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    
+    console.log(`[ROUTE] Document generation completed in ${duration}s`);
+    console.log('[ROUTE] Has claimType:', !!documents.claimType);
+    console.log('[ROUTE] Form 7A length:', documents.form7AText?.length || 0);
+    console.log('[ROUTE] Schedule A length:', documents.scheduleAText?.length || 0);
 
     return res.status(200).json({
       success: true,
       data: {
-        pdf: {
-          content: pdfBase64,
-          filename: 'statement-of-claim.pdf',
-          mimeType: 'application/pdf'
-        },
-        word: {
-          content: wordBase64,
-          filename: 'statement-of-claim.docx',
-          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        }
+        claimType: documents.claimType,
+        legalBases: documents.legalBases,
+        form7AText: documents.form7AText,
+        scheduleAText: documents.scheduleAText,
+        warnings: documents.warnings,
       },
       error: null
     });
   } catch (error) {
-    console.error('Document generation error:', error);
+    console.error('[ROUTE] Document generation error:', error);
+    console.error('[ROUTE] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
     return res.status(500).json({
       success: false,
