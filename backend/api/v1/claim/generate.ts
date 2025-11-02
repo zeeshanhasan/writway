@@ -31,10 +31,16 @@ export default async function handler(req: any, res: any) {
     });
   }
 
+  console.log('[GENERATE] Request received');
+  console.log('[GENERATE] Method:', req.method);
+  console.log('[GENERATE] Request body keys:', Object.keys(req.body || {}));
+  
   try {
+    console.log('[GENERATE] Validating request body...');
     // Validate request body
     const validationResult = generateDocumentsRequestSchema.safeParse(req.body);
     if (!validationResult.success) {
+      console.error('[GENERATE] Validation failed:', validationResult.error.errors);
       return res.status(400).json({
         success: false,
         data: null,
@@ -46,34 +52,38 @@ export default async function handler(req: any, res: any) {
       });
     }
 
+    console.log('[GENERATE] Validation passed');
     const { claimData, initialDescription } = validationResult.data;
+    console.log('[GENERATE] Has claimData:', !!claimData);
+    console.log('[GENERATE] Has initialDescription:', !!initialDescription);
 
-    // Generate documents
+    console.log('[GENERATE] Calling documentService.generateDocuments...');
+    const startTime = Date.now();
+    
+    // Generate documents (text only from OpenAI)
     const documents = await documentService.generateDocuments(claimData, initialDescription);
+    
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`[GENERATE] Document generation completed in ${duration}s`);
+    console.log('[GENERATE] Has claimType:', !!documents.claimType);
+    console.log('[GENERATE] Form 7A length:', documents.form7AText?.length || 0);
+    console.log('[GENERATE] Schedule A length:', documents.scheduleAText?.length || 0);
 
-    // Convert buffers to base64 for JSON response
-    // In production, you might want to upload to S3 and return URLs instead
-    const pdfBase64 = documents.pdf.toString('base64');
-    const wordBase64 = documents.word.toString('base64');
-
+    console.log('[GENERATE] Sending response...');
     return res.status(200).json({
       success: true,
       data: {
-        pdf: {
-          content: pdfBase64,
-          filename: 'statement-of-claim.pdf',
-          mimeType: 'application/pdf'
-        },
-        word: {
-          content: wordBase64,
-          filename: 'statement-of-claim.docx',
-          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        }
+        claimType: documents.claimType,
+        legalBases: documents.legalBases,
+        form7AText: documents.form7AText,
+        scheduleAText: documents.scheduleAText,
+        warnings: documents.warnings,
       },
       error: null
     });
   } catch (error) {
-    console.error('Document generation error:', error);
+    console.error('[GENERATE] Document generation error:', error);
+    console.error('[GENERATE] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
     return res.status(500).json({
       success: false,

@@ -62,20 +62,62 @@ class ApiClient {
     };
 
     try {
-      const response = await fetch(url, config);
-      const data = await response.json();
+      // Add timeout for long-running requests (like document generation)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes timeout
+      
+      // Log the request for debugging
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.log('[API] Fetching:', url, 'Method:', config.method || 'GET');
+      }
+      
+      const response = await fetch(url, {
+        ...config,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        throw new Error(`Failed to parse response: ${response.status} ${response.statusText}`);
+      }
 
       if (!response.ok) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const message = (data as any)?.error?.message || (data as any)?.message || 'Request failed';
+        const message = (data as any)?.error?.message || (data as any)?.message || `Request failed with status ${response.status}`;
         throw new Error(message);
       }
 
       return data as T;
     } catch (error) {
+      // Enhanced error logging for debugging
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          // eslint-disable-next-line no-console
+          console.error('[API] Request timed out:', url);
+          throw new Error('Request timed out. Please check your connection and try again.');
+        }
+        if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+          // eslint-disable-next-line no-console
+          console.error('[API] Network error - Failed to fetch:', url);
+          // eslint-disable-next-line no-console
+          console.error('[API] Check if backend is running at:', this.baseURL);
+          // eslint-disable-next-line no-console
+          console.error('[API] Error details:', error);
+          throw new Error(`Cannot connect to server at ${this.baseURL}. Please ensure the backend is running.`);
+        }
+        // eslint-disable-next-line no-console
+        console.error('[API] Request failed:', url, error.message);
+        throw error;
+      }
+      
       // eslint-disable-next-line no-console
-      console.error('API request failed:', error);
-      throw error;
+      console.error('[API] Unknown error:', error);
+      throw new Error('Network error. Please check your connection and try again.');
     }
   }
 
@@ -208,28 +250,18 @@ class ApiClient {
     claimData: unknown,
     initialDescription?: string
   ): Promise<ApiEnvelope<{
-    pdf: {
-      content: string;
-      filename: string;
-      mimeType: string;
-    };
-    word: {
-      content: string;
-      filename: string;
-      mimeType: string;
-    };
+    claimType: string;
+    legalBases?: string;
+    form7AText: string;
+    scheduleAText: string;
+    warnings?: string;
   }>> {
     return this.request<ApiEnvelope<{
-      pdf: {
-        content: string;
-        filename: string;
-        mimeType: string;
-      };
-      word: {
-        content: string;
-        filename: string;
-        mimeType: string;
-      };
+      claimType: string;
+      legalBases?: string;
+      form7AText: string;
+      scheduleAText: string;
+      warnings?: string;
     }>>('/claim/generate', {
       method: 'POST',
       body: JSON.stringify({ claimData, initialDescription }),
